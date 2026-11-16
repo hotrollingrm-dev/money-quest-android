@@ -33,14 +33,17 @@ jobs:
         run: node tools/build-web.js ${{ github.run_number }}
 
       - name: Check signing key
+        id: key
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "::error::ยังไม่ได้ใส่ KEYSTORE_BASE64 ใน Settings → Secrets and variables → Actions"
-            exit 1
+            echo "::warning::ยังไม่ได้ใส่ KEYSTORE_BASE64 — ทำแค่ตรวจว่าโค้ดคอมไพล์ผ่าน ยังไม่ออก Release"
+            echo "has=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "has=true" >> "$GITHUB_OUTPUT"
           fi
-          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
 
       - uses: actions/setup-java@v4
         with:
@@ -51,7 +54,17 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Compile check (no signing key yet)
+        if: steps.key.outputs.has != 'true'
+        working-directory: android
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
       - name: Build signed APK
+        if: steps.key.outputs.has == 'true'
         working-directory: android
         env:
           VERSION_CODE: ${{ github.run_number }}
@@ -63,6 +76,7 @@ jobs:
           ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Package release files
+        if: steps.key.outputs.has == 'true'
         run: |
           mkdir -p out
           cp android/app/build/outputs/apk/release/app-release.apk out/money-quest.apk
@@ -72,6 +86,7 @@ jobs:
           cat out/manifest.json
 
       - uses: softprops/action-gh-release@v2
+        if: steps.key.outputs.has == 'true'
         with:
           tag_name: v${{ github.run_number }}
           name: MONEY QUEST v${{ github.run_number }}
