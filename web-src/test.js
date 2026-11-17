@@ -1,5 +1,5 @@
 /* Calculation tests on a mock dataset — run: node test.js */
-const M = require("./engine.js");
+const M = require("./engine.js"); require("./debt.js");
 let pass = 0, fail = 0; const out = [];
 const eq = (name, got, want, tol = 0.01) => { const ok = Math.abs(got - want) <= tol; ok ? pass++ : fail++; out.push(`${ok ? "PASS" : "FAIL"}  ${name}: got ${got}  want ${want}`); };
 const ok = (name, cond, info = "") => { cond ? pass++ : fail++; out.push(`${cond ? "PASS" : "FAIL"}  ${name} ${info}`); };
@@ -62,10 +62,10 @@ S.debts.push(card, car, loan);
 eq("flat installment 300k 3% 60m", fi.installment, M.r2((300000 + 300000 * 0.03 * 5) / 60));
 eq("card min 8%", M.debtDue(card), 2400);
 const pv = M.previewPayment(S, card, 3000, "2026-10-05");
-eq("card interest 30 days @16%", pv.interest, M.r2(30000 * 0.16 * 30 / 365));
+eq("card payment: interest already in statement", pv.interest, 0);
 ok("preview does not change balance", card.balance === 30000);
 M.applyPayment(S, "c1", pv);
-eq("balance after confirmed payment", card.balance, M.r2(30000 - (3000 - pv.interest)));
+eq("balance after confirmed payment", card.balance, 27000);
 const pv2 = M.previewPayment(S, car, fi.installment, "2026-10-10");
 eq("flat interest per installment", pv2.interest, fi.interestPer);
 const sched = M.debtSchedule(S, "2026-10", "2026-10-25");

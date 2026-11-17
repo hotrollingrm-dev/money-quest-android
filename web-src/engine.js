@@ -386,7 +386,7 @@ function nextPayday(state, today) {
 function available(state, mk, today = ymd(new Date())) {
   const pr = payroll(state, mk);
   const ex = expenseMonth(state, mk);
-  const ds = debtSchedule(state, mk, today);
+  const ds = API.debtSchedule(state, mk, today);
   const debtCommitted = r2(sum(ds.map(x => x.planned)));
   const debtPaid = r2(sum(ds.map(x => x.paidAmt)));
   const activeGoals = state.goals.filter(g => !g.doneAt || monthKey(g.doneAt) >= mk);
@@ -472,7 +472,7 @@ const MISSIONS = [
   { id: "save2k", title: "เก็บเงินเข้าเป้าหมาย 2,000 บาท", xp: 120, live: true,
     eval: (s, mk) => { const v = sum(s.goals.map(g => goalContribMonth(g, mk))); return { value: v, target: 2000 }; } },
   { id: "debtOnTime", title: "จ่ายหนี้ทุกงวดตรงเวลา", xp: 150, live: false,
-    eval: (s, mk) => { const rows = s.debts.length ? debtSchedule(s, mk, `${mk}-${pad(daysInMonth(mk))}`) : [];
+    eval: (s, mk) => { const rows = s.debts.length ? API.debtSchedule(s, mk, `${mk}-${pad(daysInMonth(mk))}`) : [];
       if (!rows.length) return { value: 0, target: 1, na: true };
       const ok = rows.filter(r => r.status === "paid" && s.debtPayments.some(p => p.debtId === r.debt.id && p.month === mk && p.date <= r.due)).length + rows.filter(r => r.status === "closed").length;
       return { value: ok, target: rows.length }; } },

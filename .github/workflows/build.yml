@@ -27,7 +27,7 @@ jobs:
         run: npm ci
 
       - name: Test calculations (salary, tax, debt, available-to-spend, missions)
-        run: node web-src/test.js
+        run: node web-src/test.js && node web-src/test-debt.js
 
       - name: Build web app
         run: node tools/build-web.js ${{ github.run_number }}
