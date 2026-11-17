@@ -7,7 +7,7 @@ const read = f => fs.readFileSync(path.join(W, f), "utf8");
 let html = read("shell.html")
   .replace("/*CSS*/", () => read("app.css")).replace("/*ROSTER*/", () => read("roster.js"))
   .replace("/*ENGINE*/", () => read("engine.js") + "\n" + read("debt.js")).replace("/*SLIP*/", () => read("slip.js"))
-  .replace("/*APP*/", () => ["art.js", "app1.js", "app2.js", "app3.js", "app4.js"].map(read).join("\n"))
+  .replace("/*APP*/", () => ["art.js", "app1.js", "app2.js", "app3.js", "debtui.js", "app4.js"].map(read).join("\n"))
   .replace("__MQ_WEB_VERSION__", ver);
 fs.rmSync(OUT, { recursive: true, force: true });
 for (const d of ["vendor/core", "vendor/lang", "vendor/fonts"]) fs.mkdirSync(path.join(OUT, d), { recursive: true });

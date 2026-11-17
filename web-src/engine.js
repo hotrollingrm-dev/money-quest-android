@@ -55,6 +55,7 @@ function defaultState() {
     goals: [],              // {id,name,icon,target,have,monthly,deadline,priority,isEmergency,contributions:[{id,date,amount}],doneAt}
     budget: { savingsMonthly: 0 },
     planner: { appts: [], todos: [] },
+    installments: [], cardStatements: [], refRates: [], debtStrategy: "hybrid", debtPlanExtra: 0,
     slips: {}, owner: { names: [], accounts: [] }, slipRules: {},
     journey: { weights: { debt: 35, emergency: 25, goals: 30, habits: 10 }, claimed: {}, badges: {} },
     audit: []

@@ -507,9 +507,18 @@ function buildSample() {
   Object.assign(s.pay, { salary: 18000, living: 1500, position: 1000, rent: 1500, env: 500, diligence: 700, pvdRate: .03 });
   const mkOT = (a, b, c) => ({ values: { h1: null, h15: { h: a, m: 30 }, h3: { h: b, m: 0 }, h15p: null, h2p: { h: c, m: 0 }, other: null, meal: { v: 1100 }, mealOt: { v: 350 }, shift: { v: 1320 } }, source: {}, at: Date.now(), history: [] });
   s.ot[E.addMonths(pk, -2)] = mkOT(18, 8, 0); s.ot[E.addMonths(pk, -1)] = mkOT(22, 12, 8); s.ot[pk] = mkOT(14, 4, 0);
-  s.debts = [{ id: "d1", name: "บัตรเครดิต", lender: "ธนาคารตัวอย่าง", type: "card", method: "card", principal: 30000, balance: 24500, apr: 16, minPct: 8, minAmount: 1000, dueDay: 5, startDate: E.addDays(td, -40), createdAt: 0 },
-             { id: "d2", name: "สินเชื่อส่วนบุคคล", lender: "นอนแบงก์ตัวอย่าง", type: "personal", method: "reducing", principal: 50000, balance: 41000, apr: 22, monthlyPay: 2500, dueDay: 20, startDate: E.addDays(td, -60), createdAt: 0 }];
-  s.debtPayments = [{ id: "p1", debtId: "d1", date: `${mk}-05`, month: mk, amount: 2600, interest: 330, principal: 2270, before: 26770, after: 24500 }];
+  const pm = E.addMonths(mk, -1);
+  s.debts = [{ id: "d1", name: "บัตรตัวอย่าง A", lender: "KBANK", type: "card", method: "card", limit: 60000, balance: 8400, unbilled: 2100, apr: 16, minPct: 8, minAmount: 1000, minKnown: false, statementDay: 5, dueDay: 25, payPlan: "full", status: "active", createdAt: 0 },
+             { id: "d3", name: "SPayLater", lender: "SHOPEE", type: "bnpl", method: "bnpl", balance: 0, apr: 0, dueDay: 10, status: "active", createdAt: 0 },
+             { id: "d2", name: "บัตรกดเงินสดตัวอย่าง", lender: "KTC", type: "cash", method: "card", limit: 40000, balance: 18000, apr: 25, minPct: 3, minAmount: 500, statementDay: 20, dueDay: 10, payPlan: "custom", payCustom: 2500, status: "active", createdAt: 0 },
+             { id: "d4", name: "บ้านตัวอย่าง", lender: "GSB", refBank: "GSB", type: "home", method: "reducing", principal: 1200000, balance: 1080000, monthlyPay: 8000, dueDay: 1, termMonths: 300, paidBefore: 40, startDate: "2023-07-01", dayCount: "act365",
+               rates: [{ from: "2023-07-01", kind: "fixed", rate: 2.9 }, { from: "2026-07-01", kind: "float", ref: "MRR", margin: -1.5 }], prepay: { allowed: true, mode: "term", feePct: 3, feeUntil: "2026-12-31", note: "ตัวอย่าง: ปิดภายใน 3 ปีเสีย 3%" }, status: "active", createdAt: 0 }];
+  s.installments = [{ id: "i1", debtId: "d1", name: "โทรศัพท์ (0%)", price: 24000, n: 10, kind: "zero", firstMonth: E.addMonths(mk, -3), createdAt: 0 },
+                    { id: "i2", debtId: "d3", name: "หูฟัง", price: 3000, n: 3, kind: "zero", firstMonth: mk, createdAt: 0 },
+                    { id: "i3", debtId: "d3", name: "หม้อทอด", price: 2400, n: 6, kind: "zero", firstMonth: E.addMonths(mk, -2), createdAt: 0 }];
+  s.cardStatements = [{ id: "st1", debtId: "d1", stDate: `${mk}-05`, dueDate: `${mk}-25`, amount: 8400, min: 3100, createdAt: 0 }];
+  s.refRates = [{ id: "r1", bank: "GSB", ref: "MRR", rate: 6.9, effective: "2025-01-01", source: "ข้อมูลตัวอย่าง (ไม่ใช่อัตราจริง)", createdAt: 0, confirmed: true }];
+  s.debtPayments = [{ id: "p1", debtId: "d4", date: `${mk}-01`, month: mk, amount: 8000, interest: 2580, principal: 5420, before: 1085420, after: 1080000, kind: "regular", confirmedAt: 0 }];
   s.expenses = [{ id: "e1", name: "ค่าห้อง", cat: "home", kind: "fixed", amount: 4500, dueDay: 1 }, { id: "e2", name: "ค่าไฟ", cat: "power", kind: "fixed", amount: 900, dueDay: 15 }, { id: "e3", name: "ค่าโทรศัพท์", cat: "phone", kind: "fixed", amount: 499, dueDay: 28 }, { id: "e4", name: "ค่าอาหาร", cat: "food", kind: "variable", amount: 5500 }, { id: "e5", name: "ค่าน้ำมัน", cat: "fuel", kind: "variable", amount: 1800 }];
   s.spend = [{ id: "s1", date: `${mk}-01`, amount: 4500, cat: "home", itemId: "e1" }, { id: "s2", date: `${mk}-03`, amount: 320, cat: "food", itemId: "e4", note: "ข้าว + กาแฟ" }, { id: "s3", date: `${mk}-07`, amount: 600, cat: "fuel", itemId: "e5" }, { id: "s4", date: td, amount: 145, cat: "food", itemId: "e4", note: "ข้าวเที่ยง" }];
   s.goals = [{ id: "g1", name: "เงินสำรองฉุกเฉิน", icon: "buoy", target: 30000, have: 8000, monthly: 1500, priority: 1, isEmergency: true, contributions: [{ id: "c1", date: `${mk}-02`, amount: 1500 }] },
@@ -608,7 +617,7 @@ document.addEventListener("click", e => {
     payM: () => { view.payMonth = E.addMonths(view.payMonth, +d.n); render(); }, taxY: () => { view.taxYear = +d.y; render(); },
     expM: () => { view.expMonth = E.addMonths(view.expMonth, +d.n); render(); },
     debtEdit: () => sheetDebt(d.id), pay: () => sheetPay(d.id),
-    debtDel: () => { const x = S.debts.find(y => y.id === d.id); if (!el.dataset.ok) { el.dataset.ok = 1; el.textContent = "กดอีกครั้งเพื่อลบ"; return; } S.debts = S.debts.filter(y => y.id !== d.id); S.debtPayments = S.debtPayments.filter(p => p.debtId !== d.id); audit("debt", `ลบหนี้ ${x?.name}`); closeSheet(); commit(); },
+    debtDel: () => { const x = S.debts.find(y => y.id === d.id); if (!el.dataset.ok) { el.dataset.ok = 1; el.textContent = "กดอีกครั้งเพื่อลบ"; return; } S.debts = S.debts.filter(y => y.id !== d.id); (S.installments || []).forEach(i => { if (i.debtId === d.id) i.deletedAt = Date.now(); }); S.debtPayments = S.debtPayments.filter(p => p.debtId !== d.id); audit("debt", `ลบหนี้ ${x?.name}`); closeSheet(); commit(); },
     expItem: () => sheetExpItem(d.id, d.kind), spend: () => sheetSpend(d.id),
     expDel: () => { S.expenses = S.expenses.filter(x => x.id !== d.id); S.spend.forEach(l => { if (l.itemId === d.id) l.itemId = null; }); closeSheet(); commit(); },
     spendDel: () => { S.spend = S.spend.filter(x => x.id !== d.id); closeSheet(); commit(); },

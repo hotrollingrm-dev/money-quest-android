@@ -67,7 +67,7 @@ function normalize(o) {
   s.shift = Object.assign(E.defaultState().shift, o.shift || {}); s.shift.times = Object.assign(E.defaultState().shift.times, (o.shift || {}).times || {});
   s.journey.weights = Object.assign(E.defaultState().journey.weights, (o.journey || {}).weights || {});
   s.planner = Object.assign({ appts: [], todos: [] }, o.planner || {});
-  for (const k of ["debts", "debtPayments", "expenses", "spend", "goals", "audit"]) s[k] = Array.isArray(o[k]) ? o[k] : [];
+  for (const k of ["debts", "debtPayments", "expenses", "spend", "goals", "audit", "installments", "cardStatements", "refRates"]) s[k] = Array.isArray(o[k]) ? o[k] : [];
   for (const k of ["ot", "payslips", "slips", "slipRules"]) s[k] = o[k] && typeof o[k] === "object" ? o[k] : {};
   s.owner = Object.assign({ names: [], accounts: [] }, o.owner || {});
   return s;

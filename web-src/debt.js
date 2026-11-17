@@ -431,7 +431,7 @@ function compareAll(state, extra, today = ymd(new Date())) {
   for (const k of ["snowball", "avalanche", "hybrid"]) r[k].saved = isFinite(none.months) ? bt(st(none.cost) - st(r[k].cost)) : null, r[k].monthsSaved = isFinite(none.months) && isFinite(r[k].months) ? none.months - r[k].months : null;
   const cands = ["hybrid", "avalanche", "snowball"].filter(k => isFinite(r[k].months));
   const best = cands.sort((a, b) => st(r[a].cost) - st(r[b].cost) || r[a].months - r[b].months)[0] || null;
-  let rec = best, reason = best ? `ดอกเบี้ย+ค่าธรรมเนียมรวมต่ำสุด (${r[best].cost.toLocaleString()} บาท)` : "ด้วยยอดชำระนี้ยังปิดหนี้ไม่หมด ลองเพิ่มเงินโปะต่อเดือน";
+  let rec = best, reason = best ? `ดอกเบี้ย+ค่าธรรมเนียมรวมต่ำสุด (${Math.round(r[best].cost).toLocaleString()} บาท)` : "ด้วยยอดชำระนี้ยังปิดหนี้ไม่หมด ลองเพิ่มเงินโปะต่อเดือน";
   if (best && best !== "snowball" && r.snowball.order[0] && r[best].order[0] && r.snowball.order[0].month + 3 <= r[best].order[0].month && st(r.snowball.cost) - st(r[best].cost) < st(r[best].cost) * 0.02) {
     rec = "snowball"; reason = `ดอกเบี้ยต่างกันไม่ถึง 2% แต่ปิดก้อนแรกได้เร็วกว่า ${r[best].order[0].month - r.snowball.order[0].month} เดือน ช่วยให้มีกำลังใจ`; }
   return { ...r, recommend: rec, reason, hybridWhy: explainHybrid(state, extra, today) };
@@ -473,7 +473,7 @@ function alerts(state, today = ymd(new Date()), days = 5) {
   const out = [], mk = monthKey(today);
   for (const r of debtSchedule(state, mk, today).concat(debtSchedule(state, addMonths(mk, 1), today))) {
     const n = diffDays(today, r.due);
-    if (r.status === "overdue") out.push({ kind: "overdue", level: "bad", id: r.debt.id, title: `${r.debt.name} เลยกำหนดชำระ`, sub: `ครบกำหนด ${r.due} · ค้าง ${(r.planned - r.paidAmt).toLocaleString()} บาท` });
+    if (r.status === "overdue") out.push({ kind: "overdue", level: "bad", id: r.debt.id, title: `${r.debt.name} เลยกำหนดชำระ`, sub: `ครบกำหนด ${r.due} · ค้าง ${Math.round(r.planned - r.paidAmt).toLocaleString()} บาท` });
     else if (r.status === "planned" && n >= 0 && n <= days) out.push({ kind: "due", level: "warn", id: r.debt.id, title: `${r.debt.name} ครบกำหนดใน ${n} วัน`, sub: `${r.planned.toLocaleString()} บาท${r.source === "estimated" ? " (ประมาณ)" : ""}`, due: r.due });
   }
   for (const d of live(state, today)) {
