@@ -252,6 +252,42 @@ function drawDial() {
   el.setAttribute("aria-valuetext", dLong(cur));
   if (dial.lastInt !== base) { if (dial.lastInt !== null) { try { navigator.vibrate && navigator.vibrate(4); } catch (e) {} } dial.lastInt = base; }
 }
+/* double-tap the dial → the whole month; back returns to the dial */
+function monthHTML() {
+  const td = today(), sel = view.homeDay || td, mk = view.homeMonthKey || E.monthKey(sel);
+  const [y, m] = mk.split("-").map(Number), first = new Date(y, m - 1, 1), dim = new Date(y, m, 0).getDate(), off = (first.getDay() + 6) % 7;
+  const cells = [];
+  for (let i = 0; i < off; i++) cells.push(`<span class="mc empty"></span>`);
+  for (let dd = 1; dd <= dim; dd++) {
+    const d = `${mk}-${String(dd).padStart(2, "0")}`, c = shiftOf(d).c;
+    cells.push(`<button class="mc ${d === td ? "now" : ""} ${d === sel ? "sel" : ""} ${d < td ? "past" : ""} ${HOL[d] ? "hol" : ""}" data-act="monthPick" data-d="${d}" aria-label="${dLong(d)} ${SHN[c]}">
+      <span class="n">${dd}</span><span class="dl k${c}">${c}</span><span class="dab">${otherTeams().map(t => { const x = rosterCode(t, d).c; return `<span>${t}<b class="k${x}">${x}</b></span>`; }).join("")}</span></button>`);
+  }
+  const cnt = { D: 0, N: 0, H: 0 }; for (let dd = 1; dd <= dim; dd++) { const c = shiftOf(`${mk}-${String(dd).padStart(2, "0")}`).c; cnt[c === "S" ? "H" : c]++; }
+  return `<div class="card monthv">
+    <div class="between mvh"><button class="b3 back" data-act="monthBack" aria-label="กลับไปวงหมุน">${I.l}<span>กลับ</span></button>
+      <span class="row" style="gap:8px"><button class="icon-btn" data-act="monthNav" data-n="-1" aria-label="เดือนก่อน">${I.l}</button><b style="font-size:17px;min-width:118px;text-align:center">${mLabel(mk)}</b><button class="icon-btn" data-act="monthNav" data-n="1" aria-label="เดือนถัดไป">${I.r}</button></span></div>
+    <div class="mgridh">${["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"].map(x => `<span>${x}</span>`).join("")}</div>
+    <div class="mgridd">${cells.join("")}</div>
+    <div class="mleg"><span><i class="dl kD">D</i>เช้า ${cnt.D}</span><span><i class="dl kN">N</i>ดึก ${cnt.N}</span><span><i class="dl kH">H</i>หยุด ${cnt.H}</span><span class="muted">Team ${S.profile.team || "C"}</span></div></div>`;
+}
+function setMonthMode(on, push = true) {
+  view.homeMonth = on; if (!on) view.homeMonthKey = null;
+  const w = $("#dialWrap"); if (!w) return;
+  w.innerHTML = on ? monthHTML() : dialHTML(); w.firstElementChild.classList.add("swap");
+  if (!on) initDial();
+  if (on && push) { try { history.pushState({ mqMonth: 1 }, ""); } catch (e) {} }
+}
+window.addEventListener("popstate", () => { if (view.homeMonth) setMonthMode(false, false); });
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-act=monthBack],[data-act=monthNav],[data-act=monthPick]"); if (!b) return; e.stopPropagation();
+  const a = b.dataset.act;
+  if (a === "monthBack") { if (history.state && history.state.mqMonth) history.back(); else setMonthMode(false, false); }
+  if (a === "monthNav") { const base = view.homeMonthKey || E.monthKey(view.homeDay || today()); view.homeMonthKey = E.addMonths(base, +b.dataset.n); $("#dialWrap").innerHTML = monthHTML(); }
+  if (a === "monthPick") { const d = b.dataset.d; view.homeDay = d; const hb = $("#heroBox"); if (hb) hb.innerHTML = heroHTML(d); const sb = $("#sceneBox"); if (sb) sb.innerHTML = sceneHTML(d);
+    const hd = $("#dayHead"); if (hd) hd.textContent = d === today() ? `วันนี้ · ${dShort(d)}` : dLong(d).replace(/ \d{4}$/, "");
+    $("#dialWrap").querySelectorAll(".mc.sel").forEach(x => x.classList.remove("sel")); b.classList.add("sel"); }
+}, true);
 function dialSettle() {
   const td = today(), d = E.addDays(td, Math.round(dial.pos));
   if (view.homeDay !== d) { const was = view.homeDay || td; view.homeDay = d; const hb = $("#heroBox"); if (hb) hb.innerHTML = heroHTML(d);
@@ -288,7 +324,8 @@ function initDial() {
     const now = performance.now(), dt = Math.max(1, now - g.lt); dial.v = -(e.clientX - g.lx) / perDay / dt; g.lx = e.clientX; g.lt = now;
     drawDial(); e.preventDefault();
   });
-  const end = e => { const g = dial.drag; if (!g || g.id !== e.pointerId) return; dial.drag = null; if (!g.moved) return;
+  const end = e => { const g = dial.drag; if (!g || g.id !== e.pointerId) return; dial.drag = null;
+    if (!g.moved) { const now = performance.now(); if (now - (dial.lastTap || 0) < 330) { dial.lastTap = 0; setMonthMode(true); return; } dial.lastTap = now; return; }
     el.dataset.dragged = "1"; setTimeout(() => delete el.dataset.dragged, 50);
     if (performance.now() - g.lt > 80) dial.v = 0; dial.v = Math.max(-.03, Math.min(.03, dial.v)); dialCoast(); };
   el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
@@ -297,7 +334,7 @@ function initDial() {
 }
 document.addEventListener("click", e => { const b = e.target.closest("[data-act=dialGo]"); if (!b) return; e.preventDefault(); e.stopPropagation();
   if ($("#dial")?.dataset.dragged) return;
-  const k = E.diffDays(today(), b.dataset.d); if (Math.round(dial.pos) === k && b.classList.contains("on")) { view.sel = b.dataset.d; view.calMonth = E.monthKey(b.dataset.d); view.calView = "day"; go("planner", "calendar"); return; }
+  const k = E.diffDays(today(), b.dataset.d); 
   if (!$("#dial")) { view.homeDay = b.dataset.d; dial.pos = k; go("home"); return; }
   dialAnimateTo(k); }, true);
 
@@ -339,8 +376,8 @@ function pHome() {
       <span class="row" style="gap:10px"><button class="b3 sq" data-act="goPlanner" data-sub="appts" aria-label="การเตือน">${art("bell", 30, "flat")}${rem.length ? `<i class="badge-n">${rem.length}</i>` : ""}</button>
       <button class="b3 sq" data-act="go" data-tab="profile" aria-label="โปรไฟล์">${art("user", 30, "flat")}</button></span></div></section>
   <button class="card mstrip" data-act="go" data-tab="journey">${art("paw", 46)}<span style="flex:1"><small><b>${done} / ${ms.length || 0}</b> ภารกิจเดือนนี้ · Lv.${lv.lv}</small><span class="pbar"><i style="width:${pct * 100}%"></i></span></span><b class="pp">${Math.round(pct * 100)}%</b></button>
-  <div class="between dayrow"><h2 id="dayHead">${dsel === td ? `วันนี้ · ${dShort(dsel)}` : dLong(dsel).replace(/ \d{4}$/, "")}</h2><span class="muted" style="font-size:12px;font-weight:700">ลากเพื่อหมุน ⟲</span></div>
-  ${dialHTML()}
+  <div class="between dayrow"><h2 id="dayHead">${dsel === td ? `วันนี้ · ${dShort(dsel)}` : dLong(dsel).replace(/ \d{4}$/, "")}</h2><span class="muted" style="font-size:12px;font-weight:700">ลากหมุน · แตะ 2 ครั้งดูทั้งเดือน</span></div>
+  <div id="dialWrap">${view.homeMonth ? monthHTML() : dialHTML()}</div>
   <div class="home-grid"><div class="stack"><div id="heroBox">${heroHTML(dsel)}</div>${quick}${cash}</div>
   <div class="stack">
     ${rem.length ? `<div class="card"><div class="between" style="margin-bottom:6px"><b class="row" style="gap:8px">${art("bell", 30)} เตือนเร็ว ๆ นี้</b><span class="tag y">${rem.length}</span></div>${rem.slice(0, 4).map(r => `<div class="li"><span class="dot" style="background:${r.overdue ? "var(--bad)" : r.kind === "appt" ? "var(--lav-ink)" : "var(--sun-deep)"}"></span><div class="t"><b>${esc(r.title)}</b><small>${esc(r.sub)}</small></div></div>`).join("")}</div>` : ""}
