@@ -203,21 +203,22 @@ function heroHTML(d) {
     else if (isWork(c)) { const s = atTime(td, times(c)[0]), e = crosses(c) ? atTime(E.addDays(td, 1), times(c)[1]) : atTime(td, times(c)[1]);
       status = now < s ? `เริ่มงานในอีก ${dur(s - now)}` : now < e ? `กำลังทำงาน · เลิกในอีก ${dur(e - now)}` : "เลิกงานแล้ว พักผ่อนเถอะ"; }
   } else { const n = E.diffDays(td, d); status = n === 1 ? "พรุ่งนี้" : n === -1 ? "เมื่อวาน" : n > 0 ? `อีก ${n} วัน` : `${-n} วันก่อน`; }
-  let toOff = 0; for (let i = 0; i < 30; i++) { if (!isWork(shiftOf(E.addDays(d, i)).c)) { toOff = i; break; } }
-  const offLine = isWork(sh.c) ? (toOff === 0 ? "" : `อีก ${toOff} วันถึงวันหยุด`) : (() => { for (let i = 1; i < 30; i++) { const n = E.addDays(d, i), nc = shiftOf(n).c; if (isWork(nc)) return `${SHN[nc]}ถัดไป ${dShort(n)} ${times(nc)[0]}`; } return ""; })();
-  const nx = E.addDays(d, 1), tm = shiftOf(nx).c;
-  const sceneC = isWork(c) ? c : sh.c === "S" ? "S" : "H";
-  return `<div class="hero">
-    <button class="scene ${sceneC}" style="background:${SCENE_BG[sceneC]}" data-act="planDay" data-d="${d}">
-      <div class="ttl">${SHN[c]}${sh.sw && c === sh.c ? " (สลับกะ)" : ""}</div>
-      <div class="tm">${isToday ? "" : dLong(d).replace(/ \d{4}$/, "") + " · "}${isWork(c) ? `${times(c).join(" – ")} · ${fmt(shiftHours(c), 2).replace(/\.?0+$/, "")} ชม.` : "Team " + S.profile.team}</div>
-      ${status ? `<div class="st">${esc(status)}</div>` : ""}${offLine ? `<div class="st" style="margin-left:6px">${esc(offLine)}</div>` : ""}
-      ${HOL[d] ? `<div class="st" style="margin-left:6px;color:var(--bad)">${esc(HOL[d][0])}</div>` : ""}
-      ${sceneArt(sceneC)}
-      <div style="height:${isWork(c) ? 150 : 140}px"></div>
-    </button>
-    <button class="side-next" data-act="dialGo" data-d="${nx}">${isToday ? "พรุ่งนี้" : dShort(nx)} <b>${SHN[tm]}</b></button></div>
-  ${otherTeams().length ? `<button class="card teams" data-act="goPlanner" data-sub="shift"><span class="muted" style="font-size:13px;font-weight:600">${isToday ? "วันนี้ทีมอื่น" : "ทีมอื่น " + dShort(d)}</span>${teamLine(d)}</button>` : ""}`;
+  let nextLine = "";
+  if (isWork(sh.c)) { let k = 0; for (let i = 0; i < 30; i++) if (!isWork(shiftOf(E.addDays(d, i)).c)) { k = i; break; } nextLine = k ? `อีก <b>${k} วัน</b> ถึงวันหยุด` : ""; }
+  else for (let i = 1; i < 30; i++) { const n = E.addDays(d, i), nc = shiftOf(n).c; if (isWork(nc)) { nextLine = `กะถัดไป <b>${SHN[nc].replace("กะ", "")} ${dShort(n)} ${times(nc)[0]}</b>`; break; } }
+  const ot = otherTeams().map(t => { const x = rosterCode(t, d).c; return `<span class="tp k${x}"><i>${t}</i>${SHS[x]}${isWork(x) ? ` ${times(x)[0]}` : ""}</span>`; }).join("");
+  return `<button class="card shiftcard k${c}" data-act="planDay" data-d="${d}">
+    <span class="sl k${c}">${c}</span>
+    <span class="sc"><b>${SHN[c]}${sh.sw && c === sh.c ? " (สลับกะ)" : ""} · Team ${S.profile.team || "C"}</b>
+      <small>${isToday ? "" : dLong(d).replace(/ \d{4}$/, "") + " · "}${isWork(c) ? `${times(c).join(" – ")} · ${fmt(shiftHours(c), 2).replace(/\.?0+$/, "")} ชม.` : HOL[d] ? esc(HOL[d][0]) : "พักผ่อนให้เต็มที่"}</small>
+      ${status || nextLine ? `<small class="st">${status ? esc(status) : ""}${status && nextLine ? " · " : ""}${nextLine}</small>` : ""}
+      ${ot ? `<span class="tps">${ot}</span>` : ""}</span></button>`;
+}
+function sceneHTML(d) {
+  const td = today(), sh = shiftOf(d); let c = sh.c;
+  if (d === td) { const yc = shiftOf(E.addDays(td, -1)).c; if (isWork(yc) && crosses(yc) && new Date() < atTime(td, times(yc)[1])) c = yc; }
+  const lines = CAT_LINES[c] || CAT_LINES.H, line = lines[(E.parse(d).getDate() + (view.catTap || 0)) % lines.length];
+  return `${catScene(c)}<button class="catbtn" data-act="catTap" aria-label="แตะน้องแมว">${catSVG(c)}</button><div class="bubble"><b>${esc(line)}</b></div>`;
 }
 const dial = { pos: null, raf: 0, v: 0, drag: null, lastInt: null };
 function dialHTML() {
@@ -243,7 +244,7 @@ function drawDial() {
     const sc = Math.max(.62, 1 - a * .09), op = Math.max(0, 1 - a * .17);
     const c = shiftOf(d).c, on = a < .5;
     html += `<button class="dd ${on ? "on" : ""} ${k === 0 ? "now" : ""} ${HOL[d] ? "hol" : ""}" data-act="dialGo" data-d="${d}" tabindex="-1" style="transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px) rotate(${(th * 180 / Math.PI).toFixed(2)}deg) scale(${sc.toFixed(3)});opacity:${op.toFixed(2)}" aria-label="${dLong(d)} ${SHN[c]}">
-      <span class="dw">${DOW[dd.getDay()]}</span><span class="dn k${c}">${dd.getDate()}</span>${teamChips(d)}</button>`;
+      <span class="dw">${DOW[dd.getDay()]}</span><span class="dn">${dd.getDate()}</span><span class="dl k${c}">${c}</span><span class="dab">${otherTeams().map(t => { const x = rosterCode(t, d).c; return `<span>${t}<b class="k${x}">${x}</b></span>`; }).join("")}</span></button>`;
   }
   face.innerHTML = html;
   const cur = E.addDays(td, base), lab = $("#dialLabel");
@@ -253,7 +254,9 @@ function drawDial() {
 }
 function dialSettle() {
   const td = today(), d = E.addDays(td, Math.round(dial.pos));
-  if (view.homeDay !== d) { view.homeDay = d; const hb = $("#heroBox"); if (hb) hb.innerHTML = heroHTML(d); }
+  if (view.homeDay !== d) { const was = view.homeDay || td; view.homeDay = d; const hb = $("#heroBox"); if (hb) hb.innerHTML = heroHTML(d);
+    const sb = $("#sceneBox"); if (sb && shiftOf(was).c !== shiftOf(d).c) { sb.innerHTML = sceneHTML(d); } else if (sb) { const bb = sb.querySelector(".bubble b"); if (bb) bb.textContent = (CAT_LINES[shiftOf(d).c] || CAT_LINES.H)[E.parse(d).getDate() % (CAT_LINES[shiftOf(d).c] || CAT_LINES.H).length]; }
+    const hd = $("#dayHead"); if (hd) hd.textContent = d === td ? `วันนี้ · ${dShort(d)}` : dLong(d).replace(/ \d{4}$/, ""); }
 }
 function dialAnimateTo(target) {
   cancelAnimationFrame(dial.raf); const from = dial.pos, t0 = performance.now(), dur = Math.min(700, 220 + Math.abs(target - from) * 60);
@@ -269,7 +272,7 @@ function dialCoast() {
 function initDial() {
   const el = $("#dial"); if (!el) return;
   const td = today();
-  if (dial.pos === null || dial.day !== td) { dial.pos = view.homeDay ? E.diffDays(td, view.homeDay) : 0; dial.day = td; }
+  cancelAnimationFrame(dial.raf); if (dial.day !== td) view.homeDay = null; dial.pos = view.homeDay ? E.diffDays(td, view.homeDay) : 0; dial.day = td;
   drawDial();
   el.addEventListener("pointerdown", e => {
     cancelAnimationFrame(dial.raf);
@@ -301,47 +304,51 @@ document.addEventListener("click", e => { const b = e.target.closest("[data-act=
 /* ───────── HOME ───────── */
 function pHome() {
   const { td, mk, av, jp, xp } = snapshot();
-  const sel = view.sel, sh = shiftOf(td);
   const hr = new Date().getHours(); const greet = hr < 11 ? "อรุณสวัสดิ์" : hr < 17 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น";
   const name = S.profile.name || "เพื่อนนักเดินทาง";
   const otRec = S.ot[E.periodKeyFor(td)]; const otH = otRec ? E.otCalc(otRec.values, S.pay).otHours : 0;
-  const hero = `<div id="heroBox">${heroHTML(view.homeDay || td)}</div>`;
-  // money
-  const safe = av.safe;
-  const bars = [{ v: av.fixed, c: "var(--cocoa)" }, { v: av.debt, c: "var(--bad)" }, { v: av.savings + av.goals, c: "var(--olive)" }, { v: av.varSpent, c: "var(--taupe)" }, { v: Math.max(0, safe), c: "var(--sun)" }];
-  const mx = Math.max(1, ...bars.map(b => b.v));
-  const cash = `<button class="card cash" data-act="goMoney" data-sub="overview">
-    <div><div class="lbl">เงินเหลือใช้จริง · ${mLabel(mk)}</div><div class="money big" style="color:${safe < 0 ? "var(--bad)" : "var(--ink)"}">${baht(safe)}</div></div>
-    <div class="mini-bars" aria-hidden="true">${bars.map(b => `<i style="height:${Math.max(6, b.v / mx * 64)}px;background:${b.c}"></i>`).join("")}</div>
-    <div class="daily">${S.pay.salary ? `ใช้ได้วันละ <b>${baht(av.daily)}</b> · อีก ${av.daysLeft} วันถึงเงินเดือน (${dShort(av.payday)})` : `<span class="link">ตั้งค่าเงินเดือนก่อน</span> เพื่อคำนวณเงินเหลือใช้จริง`}</div>
-    <div class="row" style="grid-column:1/-1;margin-top:8px;gap:6px">
-      <span class="tag">รับสุทธิ ${baht(av.net)}</span><span class="tag r">ภาระ ${baht(av.fixed + av.debt)}</span><span class="tag g">ออม/เป้าหมาย ${baht(av.savings + av.goals)}</span>${otH ? `<span class="tag l">OT รอบนี้ ${fmt(otH, 1)} ชม.</span>` : ""}
-    </div></button>`;
-  // reminders + upcoming
+  const dsel = view.homeDay || td;
   const rem = remindersSoon(36);
+  // today's missions as the "progress" strip
+  const ms = E.missionsFor(S, mk, td).filter(m => !m.na), done = ms.filter(m => m.met || m.claimed).length, pct = ms.length ? done / ms.length : 0;
+  const safe = av.safe;
+  const segs = [{ v: av.fixed, c: "#A26A3C", l: "คงที่" }, { v: av.debt, c: "#E0503F", l: "หนี้" }, { v: av.savings + av.goals, c: "#78B536", l: "ออม" }, { v: av.varSpent, c: "#A5AA95", l: "ใช้ไป" }, { v: Math.max(0, safe), c: "#F2B21B", l: "เหลือ" }];
+  const tot = Math.max(1, E.sum(segs.map(s => s.v)));
+  const cash = `<button class="card cash2" data-act="goMoney" data-sub="overview">
+    <div class="between"><span class="row" style="gap:10px">${art("wallet", 44)}<span><small class="muted">เงินเหลือใช้จริง · ${mShort(mk)}</small><span class="money" style="display:block;font-size:30px;line-height:1.1;color:${safe < 0 ? "var(--bad)" : "var(--ink)"}">${baht(safe)}</span></span></span>
+      ${S.pay.salary ? `<span class="daypill"><small>วันละ</small><b>${baht(av.daily)}</b></span>` : ""}</div>
+    <div class="stackbar">${segs.map(s => s.v > 0 ? `<i style="flex:${s.v / tot};background:${s.c}"></i>` : "").join("")}</div>
+    <div class="legend">${segs.map(s => `<span><i style="background:${s.c}"></i>${s.l} ${fmt(s.v)}</span>`).join("")}</div>
+    <small class="muted">${S.pay.salary ? `อีก ${av.daysLeft} วันถึงเงินเดือน (${dShort(av.payday)})${otH ? ` · OT รอบนี้ ${fmt(otH, 1)} ชม.` : ""}` : `<span class="link">ตั้งค่าเงินเดือนก่อน</span> เพื่อคำนวณเงินเหลือใช้จริง`}</small></button>`;
+  const quick = `<div class="quick">
+    <button data-act="spend" data-id="">${art("cart", 52)}<span>จดรายจ่าย</span></button>
+    <button data-act="quickScan">${art("scan", 52)}<span>สแกนใบ OT</span></button>
+    <button data-act="goMoney" data-sub="slips">${art("receipt", 52)}<span>สลิปธนาคาร</span></button>
+    <button data-act="editAppt" data-id="">${art("cal", 52)}<span>เพิ่มนัด</span></button></div>`;
   const up = [];
-  for (const a of S.planner.appts) for (const d of E.apptOccurrences(a, td, E.addDays(td, 30))) up.push({ d, t: a.time || "", title: a.title, sub: a.place || a.note || "", tag: a.type || "นัดหมาย", act: `data-act="editAppt" data-id="${a.id}"` });
-  for (const r of E.debtSchedule(S, mk, td)) if (r.status !== "paid" && r.status !== "closed") up.push({ d: r.due, t: "", title: `ผ่อน ${r.debt.name}`, sub: baht(r.planned), tag: r.status === "overdue" ? "เลยกำหนด" : "หนี้", act: `data-act="goMoney" data-sub="debt"`, bad: r.status === "overdue" });
-  for (const f of E.expenseMonth(S, mk).fixed) if (f.status !== "paid" && f.due >= td) up.push({ d: f.due, t: "", title: f.item.name, sub: baht(f.planned - f.paid), tag: "ค่าใช้จ่าย", act: `data-act="goMoney" data-sub="expense"` });
-  for (const t of S.planner.todos) if (!t.done && t.due) up.push({ d: t.due, t: "", title: t.title, sub: "To-do", tag: "งาน", act: `data-act="goPlanner" data-sub="todo"` });
+  for (const a of S.planner.appts) for (const d of E.apptOccurrences(a, td, E.addDays(td, 30))) up.push({ d, t: a.time || "", title: a.title, sub: a.place || a.note || "", ic: a.type === "วันเกิด" ? "cake" : a.type === "งาน" ? "tool" : "pin", hue: a.type === "วันเกิด" ? "pink" : "blu", act: `data-act="editAppt" data-id="${a.id}"` });
+  for (const r of E.debtSchedule(S, mk, td)) if (r.status !== "paid" && r.status !== "closed") up.push({ d: r.due, t: "", title: `ผ่อน ${r.debt.name}`, sub: baht(r.planned), ic: "card", hue: "red", act: `data-act="goMoney" data-sub="debt"`, bad: r.status === "overdue" });
+  for (const f of E.expenseMonth(S, mk).fixed) if (f.status !== "paid" && f.due >= td) up.push({ d: f.due, t: "", title: f.item.name, sub: baht(f.planned - f.paid), ic: "receipt", hue: "grn", act: `data-act="goMoney" data-sub="expense"` });
+  for (const t of S.planner.todos) if (!t.done && t.due) up.push({ d: t.due, t: "", title: t.title, sub: "To-do", ic: "list", hue: "tea", act: `data-act="goPlanner" data-sub="todo"` });
   up.sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t));
-  const qc = up.slice(0, 8).map((u, i) => `<button class="qc c${(i % 5) + 1}" ${u.act}><b>${esc(u.title)}</b><p>${esc(u.sub)}</p><div class="ft"><span>${u.d === td ? "วันนี้" : dShort(u.d)}${u.t ? " · " + u.t : ""}</span><span class="tag" ${u.bad ? 'style="color:var(--bad)"' : ""}>${esc(u.tag)}</span></div></button>`).join("");
-  const next = jp.next;
-  const lv = E.level(xp);
-  const jmini = `<button class="card jmini" data-act="go" data-tab="journey">${miniMountain(jp.overall)}
-    <div class="t"><div class="sub">My Journey · Lv.${lv.lv}</div><div class="pct">${Math.round(jp.overall * 100)}%</div>
-    <div class="sub" style="margin-top:4px">${next ? `ถัดไป: <b style="color:var(--ink)">${next.name}</b> — ${next.sub}` : "ถึงยอดเขาแล้ว!"}</div></div></button>`;
+  const qc = up.slice(0, 8).map(u => `<button class="apc h-${u.hue}" ${u.act}><span class="apd"><b>${u.d === td ? "วันนี้" : dShort(u.d)}</b><small>${u.t || "ทั้งวัน"}</small></span><span class="apb">${art(u.ic, 34)}<b>${esc(u.title)}</b></span><span class="apf">${u.bad ? "เลยกำหนด!" : esc(u.sub || "")}</span></button>`).join("");
+  const lv = E.level(xp), next = jp.next;
   return `${sampleBanner()}
-  <div class="top"><div class="who"><div class="sub">${greet} · ${dLong(td)}</div><h1 class="hi">สวัสดี, ${esc(name)}</h1></div>
-    <button class="avatar" data-act="go" data-tab="profile" aria-label="โปรไฟล์">${esc((S.profile.name || "M").slice(0, 1).toUpperCase())}</button></div>
+  <section class="hscene"><div id="sceneBox">${sceneHTML(dsel)}</div>
+    <div class="htop"><div class="who"><small>${greet}</small><b>${esc(name)}</b></div>
+      <span class="row" style="gap:10px"><button class="b3 sq" data-act="goPlanner" data-sub="appts" aria-label="การเตือน">${art("bell", 30, "flat")}${rem.length ? `<i class="badge-n">${rem.length}</i>` : ""}</button>
+      <button class="b3 sq" data-act="go" data-tab="profile" aria-label="โปรไฟล์">${art("user", 30, "flat")}</button></span></div></section>
+  <button class="card mstrip" data-act="go" data-tab="journey">${art("paw", 46)}<span style="flex:1"><small><b>${done} / ${ms.length || 0}</b> ภารกิจเดือนนี้ · Lv.${lv.lv}</small><span class="pbar"><i style="width:${pct * 100}%"></i></span></span><b class="pp">${Math.round(pct * 100)}%</b></button>
+  <div class="between dayrow"><h2 id="dayHead">${dsel === td ? `วันนี้ · ${dShort(dsel)}` : dLong(dsel).replace(/ \d{4}$/, "")}</h2><span class="muted" style="font-size:12px;font-weight:700">ลากเพื่อหมุน ⟲</span></div>
   ${dialHTML()}
-  <div class="home-grid"><div class="stack">${hero}${cash}</div>
+  <div class="home-grid"><div class="stack"><div id="heroBox">${heroHTML(dsel)}</div>${quick}${cash}</div>
   <div class="stack">
-    ${rem.length ? `<div class="card"><div class="between" style="margin-bottom:6px"><b>${I.bell.replace('class="i"', 'class="i" style="width:18px;height:18px;vertical-align:-3px"')} เตือนเร็ว ๆ นี้</b><span class="tag y">${rem.length}</span></div>${rem.slice(0, 4).map(r => `<div class="li"><span class="dot" style="background:${r.overdue ? "var(--bad)" : r.kind === "appt" ? "var(--lav-ink)" : "var(--sun-deep)"}"></span><div class="t"><b>${esc(r.title)}</b><small>${esc(r.sub)}</small></div></div>`).join("")}</div>` : ""}
+    ${rem.length ? `<div class="card"><div class="between" style="margin-bottom:6px"><b class="row" style="gap:8px">${art("bell", 30)} เตือนเร็ว ๆ นี้</b><span class="tag y">${rem.length}</span></div>${rem.slice(0, 4).map(r => `<div class="li"><span class="dot" style="background:${r.overdue ? "var(--bad)" : r.kind === "appt" ? "var(--lav-ink)" : "var(--sun-deep)"}"></span><div class="t"><b>${esc(r.title)}</b><small>${esc(r.sub)}</small></div></div>`).join("")}</div>` : ""}
     <div class="sec-h" style="margin-top:4px"><h2>กำลังจะถึง</h2><button data-act="goPlanner" data-sub="calendar">ดูทั้งหมด</button></div>
-    ${qc ? `<div class="qcards">${qc}</div>` : `<div class="card empty"><b>ยังไม่มีนัดหมายหรือบิลใน 30 วัน</b>กด + ที่ปฏิทินเพื่อเพิ่มนัดหมาย</div>`}
-    <div class="sec-h"><h2>My Journey</h2><button data-act="go" data-tab="journey">ไปผจญภัย</button></div>
-    ${jmini}
+    ${qc ? `<div class="qcards">${qc}</div>` : `<div class="card empty">${catSVG("H", { cls: "mini" })}<b>ยังไม่มีนัดหมายหรือบิลใน 30 วัน</b>กดปุ่ม เพิ่มนัด ด้านบนได้เลย</div>`}
+    <button class="card jmini" data-act="go" data-tab="journey">${miniMountain(jp.overall)}
+      <div class="t"><div class="sub">การผจญภัยของน้องแมว · Lv.${lv.lv}</div><div class="pct">${Math.round(jp.overall * 100)}%</div>
+      <div class="sub" style="margin-top:4px">${next ? `ถัดไป: <b style="color:var(--ink)">${next.name}</b> — ${next.sub}` : "ถึงยอดเขาแล้ว!"}</div></div></button>
   </div></div>`;
 }
 function sampleBanner() { return sampleMode() ? `<div class="warnbox" style="margin-bottom:14px"><b>โหมดข้อมูลตัวอย่าง</b> — ไม่บันทึก ไม่ปนกับข้อมูลจริง <button class="link" data-act="sampleOff" style="margin-left:auto">ออก</button></div>` : ""; }
@@ -376,16 +383,7 @@ function worldSVG(jp) {
            <g class="flag"><rect x="12" y="-36" width="2" height="16" fill="#1D1A16"/><path d="M14 -36 L26 -32 L14 -28Z" fill="${reached[cp.id] ? "#FFBE2E" : "#fff"}" stroke="#1D1A16" stroke-width="1"/></g>`}
       <rect x="-30" y="6" width="60" height="18" rx="9" fill="${reached[cp.id] ? "#1D1A16" : "rgba(255,255,255,.9)"}"/>
       <text y="19" text-anchor="middle" font-size="10" font-weight="700" fill="${reached[cp.id] ? "#fff" : "#1D1A16"}" font-family="Plus Jakarta Sans,sans-serif">${i === 0 ? "BASE" : i === 5 ? "SUMMIT" : "CP " + i}</text></g>`).join("")}
-    <g id="hiker"><g class="bob">
-      <ellipse cx="0" cy="2" rx="11" ry="3" fill="rgba(0,0,0,.18)"/>
-      <rect x="-9" y="-26" width="9" height="16" rx="3" fill="#6E3E2E"/>
-      <rect x="-5" y="-27" width="12" height="20" rx="5" fill="#FFBE2E" stroke="#1D1A16" stroke-width="1.6"/>
-      <rect x="-4" y="-8" width="4" height="9" rx="2" fill="#1D1A16"/><rect x="2" y="-8" width="4" height="9" rx="2" fill="#1D1A16"/>
-      <circle cx="1" cy="-34" r="7" fill="#F4C9A0" stroke="#1D1A16" stroke-width="1.6"/>
-      <path d="M-6.5 -36 Q1 -46 8.5 -36Z" fill="#7C9836" stroke="#1D1A16" stroke-width="1.4"/>
-      <circle cx="3.5" cy="-34" r="1.1" fill="#1D1A16"/>
-      <path d="M9 -22 L14 -2" stroke="#6E3E2E" stroke-width="2" stroke-linecap="round"/>
-    </g></g>
+    <g id="hiker"><g class="bob">${catSVG("H").replace("<svg ", '<svg x="-26" y="-50" width="52" height="52" ')}    </g></g>
   </svg>`;
 }
 function layoutWorld(frac) {
@@ -401,7 +399,7 @@ function layoutWorld(frac) {
   const step = t => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); place(from + (to - from) * e); if (k < 1) requestAnimationFrame(step); else view.lastFrac = to; };
   requestAnimationFrame(step);
 }
-const MISSION_ICON = { save2k: "🪙", debtOnTime: "🛡️", cut500: "✂️", noNewDebt: "🚫", otSave: "⏱️", streak3: "🔥" };
+const MISSION_ICON = { save2k: "coin", debtOnTime: "shield", cut500: "scissors", noNewDebt: "ban", otSave: "timer", streak3: "fire" };
 function badgeArt(i, on) {
   const cols = [["#FFBE2E", "#E9A300"], ["#C4452F", "#8F2E1E"], ["#7C9836", "#5E7A22"], ["#DED6FC", "#5B4BB0"], ["#6E3E2E", "#4A2A1E"]][i % 5];
   const sym = ["<text x='32' y='39' text-anchor='middle' font-size='16' font-weight='800' fill='#1D1A16'>10K</text>", "<path d='M24 40 L40 24 M26 24 L40 38' stroke='#fff' stroke-width='4' stroke-linecap='round'/>", "<path d='M22 34 l7 7 l14 -16' stroke='#fff' stroke-width='4' fill='none' stroke-linecap='round'/>", "<path d='M32 22 l3 7 7 .6-5.4 4.6 1.7 7-6.3-3.8-6.3 3.8 1.7-7L22 29.6l7-.6z' fill='#5B4BB0'/>", "<path d='M20 42 L32 22 L44 42Z' fill='#FFBE2E'/>"][i % 5];
@@ -413,10 +411,10 @@ function pJourney() {
   const lv = E.level(xp);
   const nb = E.awardBadges(S); if (nb.length) { setTimeout(() => { confetti(); toast(`ปลดล็อก ${nb.map(b => b.name).join(", ")}!`); }, 300); audit("badge", nb.map(b => b.name).join(", ")); commit({ render: false }); }
   const cur = E.missionsFor(S, mk, td), prev = E.missionsFor(S, E.addMonths(mk, -1), td).filter(m => m.claimable);
-  const mrow = (m, mkx) => `<div class="mission ${m.claimed ? "done" : ""}"><div class="mi">${MISSION_ICON[m.id] || "⭐"}</div>
+  const mrow = (m, mkx) => `<div class="mission ${m.claimed ? "done" : ""}"><div class="mi">${art(MISSION_ICON[m.id] || "star", 46)}</div>
     <div><b>${esc(m.title)}</b><small>${m.na ? "ยังไม่มีข้อมูลสำหรับภารกิจนี้" : m.claimed ? "รับรางวัลแล้ว" : m.waiting ? "ทำได้แล้ว — รับรางวัลได้หลังสิ้นเดือน" : `${fmt(Math.max(0, m.value))} / ${fmt(m.target)}`} · ${m.xp} XP</small><div class="bar"><i style="width:${m.pct * 100}%;${m.met ? "background:var(--olive)" : ""}"></i></div></div>
     ${m.claimable ? `<button class="claim" data-act="claim" data-m="${m.id}" data-mk="${mkx}">รับ ${m.xp} XP</button>` : m.claimed ? `<span class="tag g">${I.check.replace('class="i"', 'class="i" style="width:16px;height:16px"')}</span>` : ""}</div>`;
-  const goals = S.goals.map(g => { const gi = E.goalInfo(g, td); return `<button class="goal" data-act="goal" data-id="${g.id}"><div class="gi">${g.img ? `<img src="${g.img}" alt="">` : esc(g.icon || "🎯")}</div>
+  const goals = S.goals.map(g => { const gi = E.goalInfo(g, td); return `<button class="goal" data-act="goal" data-id="${g.id}"><div class="gi">${g.img ? `<img src="${g.img}" alt="">` : art(g.icon || "target", 52)}</div>
     <div><div class="between"><b>${esc(g.name)}${g.isEmergency ? ' <span class="tag g">ฉุกเฉิน</span>' : ""}</b><b>${Math.round(gi.pct * 100)}%</b></div>
     <div class="bar" style="margin:8px 0 6px"><i style="width:${gi.pct * 100}%"></i></div>
     <small class="muted">${baht(gi.saved)} / ${baht(gi.target)} · ${gi.remaining ? (gi.eta ? `ถึงเป้า ${mShort(gi.eta)}` : "ยังไม่ได้ตั้งเงินออมต่อเดือน") : "สำเร็จแล้ว!"}${gi.suggested && gi.remaining ? ` · ควรเก็บ ${baht(gi.suggested)}/ด.` : ""}</small></div></button>`; }).join("");
@@ -429,7 +427,7 @@ function pJourney() {
     <div class="world">${worldSVG(jp)}
       <div class="pctbig"><b>${Math.round(jp.overall * 100)}%</b><small>ระยะทางสู่ยอดเขา</small></div>
     </div>
-    <button class="nextcp" data-act="cpInfo" data-i="${next ? E.CHECKPOINTS.indexOf(next) : 5}"><span class="ic" style="background:var(--sun)">${next ? "⛺" : "🏆"}</span><span style="flex:1"><b>${next ? next.name + " — " + next.sub : "พิชิตยอดเขาแล้ว!"}</b><small>${next ? cpHint(next.id, jp) : "ตั้งเป้าหมายใหม่เพื่อเดินทางต่อ"}</small></span>${I.r}</button></div>
+    <button class="nextcp" data-act="cpInfo" data-i="${next ? E.CHECKPOINTS.indexOf(next) : 5}"><span class="ic">${art(next ? "tent" : "trophy", 46)}</span><span style="flex:1"><b>${next ? next.name + " — " + next.sub : "พิชิตยอดเขาแล้ว!"}</b><small>${next ? cpHint(next.id, jp) : "ตั้งเป้าหมายใหม่เพื่อเดินทางต่อ"}</small></span>${I.r}</button></div>
   <div>
     <div class="sec-h"><h2>ภารกิจเดือนนี้</h2><span class="muted" style="font-size:13px">${mLabel(mk)}</span></div>
     <div class="stack">${prev.map(m => mrow({ ...m, title: m.title + " · " + mLabel(E.addMonths(mk, -1)) }, E.addMonths(mk, -1))).join("")}${cur.map(m => mrow(m, mk)).join("")}</div>

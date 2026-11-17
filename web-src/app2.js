@@ -18,11 +18,15 @@ const CAT_COL = ["#6E3E2E", "#FFBE2E", "#7C9836", "#5B4BB0", "#C4452F", "#7B766A
 function auditList(steps) { return `<div class="audit">${steps.map((s, i) => `<div class="ar ${i === steps.length - 1 ? "total" : ""}"><b>${esc(s.label)}</b><span class="v" style="color:${s.value < 0 ? "var(--bad)" : "var(--ink)"}">${baht(s.value, Math.abs(s.value) % 1 ? 2 : 0)}</span><small>${esc(s.formula)}</small></div>`).join("")}</div>`; }
 
 /* ───────── MONEY ───────── */
-const MTABS = [["overview", "เงินเหลือใช้"], ["slips", "สลิป"], ["ot", "OT Scanner"], ["salary", "เงินเดือน & ภาษี"], ["debt", "หนี้สิน"], ["expense", "รายจ่าย"], ["report", "รายงาน"]];
+const MTABS = [["overview", "เงินเหลือใช้", "wallet"], ["slips", "สลิป", "receipt"], ["ot", "สแกน OT", "scan"], ["salary", "เงินเดือน·ภาษี", "brief"], ["debt", "หนี้สิน", "card"], ["expense", "รายจ่าย", "cart"], ["report", "รายงาน", "chart"]];
+const CAT_ART = { home: "house", water: "drop", power: "bulb", net: "wifi", food: "food", fuel: "fuel", phone: "phone", sub: "film", travel: "bus", ins: "shield", family: "family", other: "receipt" };
+const tchips = (list, cur, act) => `<div class="tchips">${list.map(([k, l, ic]) => `<button class="tchip" data-act="${act}" data-k="${k}" aria-pressed="${cur === k}">${art(ic, 38)}<span>${l}</span></button>`).join("")}</div>`;
+const profBtn = () => `<button class="b3 sq" data-act="go" data-tab="profile" aria-label="โปรไฟล์">${art("user", 30, "flat")}</button>`;
+function metric(ic, label, v, col) { return `<div class="metric">${art(ic, 40)}<small>${label}</small><b style="${col ? `color:${col}` : ""}">${typeof v === "number" ? baht(v) : v}</b></div>`; }
 function pMoney() {
-  const tabs = `<div class="chips" style="margin-bottom:16px">${MTABS.map(([k, l]) => `<button class="chip" data-act="mtab" data-k="${k}" aria-pressed="${view.money === k}">${l}</button>`).join("")}</div>`;
+  const tabs = tchips(MTABS, view.money, "mtab");
   const body = { overview: mOverview, slips: mSlips, ot: mOT, salary: mSalary, debt: mDebt, expense: mExpense, report: mReport }[view.money]();
-  return `${sampleBanner()}<div class="top"><div class="who"><div class="sub">Money</div><h1 class="hi">${MTABS.find(t => t[0] === view.money)[1]}</h1></div></div>${tabs}${body}`;
+  return `${sampleBanner()}<div class="top"><div class="who"><div class="sub">Money</div><h1 class="hi">${MTABS.find(t => t[0] === view.money)[1]}</h1></div>${profBtn()}</div>${tabs}${body}`;
 }
 function mOverview() {
   const { mk, av } = snapshot();
@@ -31,7 +35,8 @@ function mOverview() {
     { name: "คงที่", v: av.fixed, c: "var(--cocoa)" }, { name: "หนี้", v: av.debt, c: "var(--bad)" },
     { name: "ออม+เป้า", v: av.savings + av.goals, c: "var(--olive)" }, { name: "ใช้ไปแล้ว", v: av.varSpent, c: "var(--taupe)" },
     { name: "เหลือใช้", v: Math.max(0, av.safe), c: "var(--sun)", light: true }].map(x => ({ ...x, label: `${Math.round(x.v / net * 100)}%` }));
-  return `<div class="mgrid"><div class="stack">
+  return `<div class="metrics">${metric("bank", "รับสุทธิ", av.net)}${metric("card", "บิล + หนี้", av.fixed + av.debt, "var(--bad)")}${metric("piggy", "ออม + เป้าหมาย", av.savings + av.goals, "var(--olive-deep)")}${metric("cart", "ใช้ไปแล้ว", av.varSpent)}</div>
+  <div class="mgrid"><div class="stack">
     <div class="card"><div class="sub">เงินเหลือใช้จริง · ${mLabel(mk)}</div>
       <div class="money big" style="color:${av.safe < 0 ? "var(--bad)" : "var(--ink)"}">${baht(av.safe)}</div>
       <div class="sub" style="margin-top:4px">ใช้ได้วันละ <b style="color:var(--ink)">${baht(av.daily)}</b> · อีก ${av.daysLeft} วันถึงเงินเดือน ${dShort(av.payday)}</div>
@@ -85,7 +90,7 @@ function mOT() {
       <div class="between" style="margin-top:12px"><input type="range" min="0" max="60" step="1" value="${view.simH}" data-act-input="simH" style="flex:1;accent-color:#E9A300" aria-label="ชั่วโมง OT ต่อเดือน"><b style="width:80px;text-align:right">${view.simH} ชม./ด.</b></div>
       <div class="kv" style="margin-top:10px"><div><small>รายได้เพิ่ม/เดือน</small><b>${baht(sim.extraMonth)}</b></div><div><small>ภาษีเพิ่ม/ปี</small><b>${baht(sim.taxDeltaYear)}</b></div><div><small>สุทธิเพิ่ม/เดือน</small><b>${baht(sim.netExtraMonth)}</b></div></div>
       <p class="sub" style="margin-top:8px">ฐานภาษีขั้นสุดท้ายของคุณ ${Math.round(sim.marginal * 100)}%</p></div>
-    <div class="card"><b>ประวัติการบันทึก</b>${hist.length ? `<div class="list">${hist.map(k => { const r = S.ot[k], c = E.otCalc(r.values, S.pay); const n = (r.history || []).length; return `<button class="li" data-act="otKey" data-k="${k}"><div class="ic">⏱️</div><div class="t"><b>${mLabel(k)}</b><small>${Object.values(r.source || {}).includes("scan") ? "สแกน + ตรวจ" : "กรอกเอง"}${n > 1 ? ` · แก้ ${n - 1} ครั้ง` : ""}</small></div><div class="v">${baht(c.total)}<small>${fmt(c.otHours, 1)} ชม.</small></div></button>`; }).join("")}</div>` : `<div class="empty">ยังไม่มีรอบที่บันทึก</div>`}</div>
+    <div class="card"><b>ประวัติการบันทึก</b>${hist.length ? `<div class="list">${hist.map(k => { const r = S.ot[k], c = E.otCalc(r.values, S.pay); const n = (r.history || []).length; return `<button class="li" data-act="otKey" data-k="${k}"><div class="ic">${art("timer")}</div><div class="t"><b>${mLabel(k)}</b><small>${Object.values(r.source || {}).includes("scan") ? "สแกน + ตรวจ" : "กรอกเอง"}${n > 1 ? ` · แก้ ${n - 1} ครั้ง` : ""}</small></div><div class="v">${baht(c.total)}<small>${fmt(c.otHours, 1)} ชม.</small></div></button>`; }).join("")}</div>` : `<div class="empty">ยังไม่มีรอบที่บันทึก</div>`}</div>
   </div></div>`;
 }
 function otLiveUpdate() {
@@ -179,7 +184,7 @@ function mDebt() {
   const freeDate = isFinite(base.months) ? mLabel(E.addMonths(mk, base.months)) : "จ่ายไม่ทันดอกเบี้ย";
   const card = d => { const r = rows.find(x => x.debt.id === d.id), orig = +d.principal || +d.balance, pct = orig ? Math.max(0, 1 - d.balance / orig) : 0;
     const st = !r ? "" : r.status === "paid" ? '<span class="tag g">จ่ายแล้วเดือนนี้</span>' : r.status === "overdue" ? '<span class="tag r">เลยกำหนด</span>' : r.status === "closed" ? '<span class="tag g">ปิดแล้ว</span>' : `<span class="tag y">ครบ ${dShort(r.due)}</span>`;
-    return `<div class="card"><button class="debt" data-act="debtEdit" data-id="${d.id}"><div class="top2"><div class="ic">${{ card: "💳", cash: "🏧", personal: "🤝", car: "🚗", home: "🏠", other: "📄" }[d.type] || "📄"}</div>
+    return `<div class="card"><button class="debt" data-act="debtEdit" data-id="${d.id}"><div class="top2"><div class="ic">${art({ card: "card", cash: "atm", personal: "people", car: "car", home: "house", other: "doc" }[d.type] || "doc", 46)}</div>
       <div style="flex:1;min-width:0"><b>${esc(d.name)}</b><div class="sub">${esc(d.lender || "")} · ${E.DEBT_TYPES[d.type] || ""} · ${d.apr}%${d.method === "flat" ? " flat" : ""}</div></div>${st}</div>
       <div class="between" style="margin-top:12px"><div class="bal">${baht(d.balance)}</div><div class="sub">งวดละ ${baht(r ? r.planned : E.debtDue(d))}</div></div>
       <div class="bar" style="margin-top:8px"><i style="width:${pct * 100}%;background:var(--olive)"></i></div><div class="sub" style="margin-top:4px">จ่ายไปแล้ว ${Math.round(pct * 100)}% ของยอดเริ่มต้น ${baht(orig)}</div></button>
@@ -192,17 +197,17 @@ function mDebt() {
       <table class="tbl" style="margin-top:10px"><thead><tr><th>จ่ายเพิ่ม/ด.</th><th>Snowball</th><th>Avalanche</th><th>ประหยัดดอกเบี้ย</th></tr></thead><tbody>
       ${cmp.map(c => `<tr class="${c.extra === 1000 ? "best" : ""}"><td>${c.extra ? "+" + fmt(c.extra) : "ตามงวด"}</td><td>${isFinite(c.snowball.months) ? c.snowball.months + " ด." : "—"}<br><small class="muted">${fmt(c.snowball.totalInterest)}</small></td><td>${isFinite(c.avalanche.months) ? c.avalanche.months + " ด." : "—"}<br><small class="muted">${fmt(c.avalanche.totalInterest)}</small></td><td>${c.extra ? baht(c.interestSaved) + (c.monthsSaved ? `<br><small class="muted">เร็วขึ้น ${c.monthsSaved} ด.</small>` : "") : "—"}</td></tr>`).join("")}</tbody></table>
       <p class="sub" style="margin-top:8px">ตัวเลขดอกเบี้ยใต้จำนวนเดือนคือดอกเบี้ยรวมที่จะจ่าย</p></div>` : ""}</div>
-    ${S.debtPayments.length ? `<div class="sec-h"><h2>ประวัติการจ่าย</h2></div><div class="card"><div class="list">${S.debtPayments.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10).map(p => { const d = S.debts.find(x => x.id === p.debtId); return `<div class="li"><div class="ic">✅</div><div class="t"><b>${esc(d ? d.name : "หนี้ที่ลบแล้ว")}</b><small>${dShort(p.date)} · ต้น ${baht(p.principal)} · ดอก ${baht(p.interest, 2)}</small></div><div class="v">${baht(p.amount)}<small>เหลือ ${baht(p.after)}</small></div></div>`; }).join("")}</div></div>` : ""}`;
+    ${S.debtPayments.length ? `<div class="sec-h"><h2>ประวัติการจ่าย</h2></div><div class="card"><div class="list">${S.debtPayments.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10).map(p => { const d = S.debts.find(x => x.id === p.debtId); return `<div class="li"><div class="ic">${art("check")}</div><div class="t"><b>${esc(d ? d.name : "หนี้ที่ลบแล้ว")}</b><small>${dShort(p.date)} · ต้น ${baht(p.principal)} · ดอก ${baht(p.interest, 2)}</small></div><div class="v">${baht(p.amount)}<small>เหลือ ${baht(p.after)}</small></div></div>`; }).join("")}</div></div>` : ""}`;
 }
 
 /* Expenses */
 function mExpense() {
   const mk = view.expMonth, ex = E.expenseMonth(S, mk), td = today();
   const cats = Object.entries(ex.byCat).sort((a, b) => b[1] - a[1]);
-  const fixed = ex.fixed.map(f => `<div class="li"><div class="ic">${f.status === "paid" ? "✅" : "🧾"}</div><button class="t" data-act="expItem" data-id="${f.item.id}" style="text-align:left"><b>${esc(f.item.name)}</b><small>${E.EXP_CATS[f.item.cat] || ""} · ครบ ${dShort(f.due)}${f.paid && f.status !== "paid" ? ` · จ่ายแล้ว ${baht(f.paid)}` : ""}</small></button>
+  const fixed = ex.fixed.map(f => `<div class="li"><div class="ic">${art(f.status === "paid" ? "check" : "receipt")}</div><button class="t" data-act="expItem" data-id="${f.item.id}" style="text-align:left"><b>${esc(f.item.name)}</b><small>${E.EXP_CATS[f.item.cat] || ""} · ครบ ${dShort(f.due)}${f.paid && f.status !== "paid" ? ` · จ่ายแล้ว ${baht(f.paid)}` : ""}</small></button>
     <div class="v">${baht(f.planned)}${f.status === "paid" ? `<small>จ่ายแล้ว${f.paid > f.planned ? " (เกิน " + baht(f.paid - f.planned) + ")" : ""}</small>` : ""}</div>${f.status !== "paid" ? `<button class="btn sm ghost" data-act="markPaid" data-id="${f.item.id}">จ่ายแล้ว</button>` : ""}</div>`).join("");
-  const vari = ex.varItems.map(v => `<button class="li" data-act="expItem" data-id="${v.item.id}"><div class="ic">🛒</div><div class="t"><b>${esc(v.item.name)}</b><div class="bar" style="margin-top:6px;height:7px"><i style="width:${Math.min(100, v.spent / Math.max(1, v.budget) * 100)}%;background:${v.spent > v.budget ? "var(--bad)" : "var(--sun)"}"></i></div></div><div class="v">${baht(v.left)}<small>เหลือจาก ${baht(v.budget)}</small></div></button>`).join("");
-  const logs = ex.logs.slice().sort((a, b) => b.date.localeCompare(a.date)).map(l => `<button class="li" data-act="spend" data-id="${l.id}"><div class="ic">${{ food: "🍜", fuel: "⛽", travel: "🚌", home: "🏠", power: "💡", water: "💧", net: "📶", phone: "📱", sub: "🎬", ins: "🛡️", family: "👪" }[l.cat] || "🧾"}</div><div class="t"><b>${esc(l.note || E.EXP_CATS[l.cat] || "รายจ่าย")}</b><small>${dShort(l.date)} · ${E.EXP_CATS[l.cat] || ""}${l.itemId ? " · " + esc((S.expenses.find(e => e.id === l.itemId) || {}).name || "") : ""}</small></div><div class="v">${baht(l.amount)}</div></button>`).join("");
+  const vari = ex.varItems.map(v => `<button class="li" data-act="expItem" data-id="${v.item.id}"><div class="ic">${art("cart")}</div><div class="t"><b>${esc(v.item.name)}</b><div class="bar" style="margin-top:6px;height:7px"><i style="width:${Math.min(100, v.spent / Math.max(1, v.budget) * 100)}%;background:${v.spent > v.budget ? "var(--bad)" : "var(--sun)"}"></i></div></div><div class="v">${baht(v.left)}<small>เหลือจาก ${baht(v.budget)}</small></div></button>`).join("");
+  const logs = ex.logs.slice().sort((a, b) => b.date.localeCompare(a.date)).map(l => `<button class="li" data-act="spend" data-id="${l.id}"><div class="ic">${art(CAT_ART[l.cat] || "receipt")}</div><div class="t"><b>${esc(l.note || E.EXP_CATS[l.cat] || "รายจ่าย")}</b><small>${dShort(l.date)} · ${E.EXP_CATS[l.cat] || ""}${l.itemId ? " · " + esc((S.expenses.find(e => e.id === l.itemId) || {}).name || "") : ""}</small></div><div class="v">${baht(l.amount)}</div></button>`).join("");
   return `<div class="between" style="margin-bottom:12px"><div class="row"><button class="icon-btn" data-act="expM" data-n="-1" aria-label="เดือนก่อน">${I.l}</button><b>${mLabel(mk)}</b><button class="icon-btn" data-act="expM" data-n="1" aria-label="เดือนถัดไป">${I.r}</button></div><button class="btn primary sm" data-act="spend" data-id="">${I.plus} จดรายจ่าย</button></div>
     ${ex.varSpent > ex.varBudget && ex.varBudget ? `<div class="warnbox r" style="margin-bottom:12px">ใช้จ่ายผันแปรเกินงบ ${baht(ex.varSpent - ex.varBudget)}</div>` : ""}
     <div class="mgrid"><div class="stack">
@@ -241,7 +246,7 @@ function mReport() {
 }
 
 /* ───────── PLANNER ───────── */
-const PTABS = [["calendar", "ปฏิทิน"], ["shift", "ตารางกะ"], ["appts", "นัดหมาย"], ["todo", "To-do"]];
+const PTABS = [["calendar", "ปฏิทิน", "cal"], ["shift", "ตารางกะ", "factory"], ["appts", "นัดหมาย", "pin"], ["todo", "To-do", "list"]];
 const EV_COL = { shift: "", appt: "var(--lav-ink)", birthday: "var(--sun-deep)", debt: "var(--bad)", bill: "var(--cocoa)", todo: "var(--olive)", payday: "var(--good)" };
 function dayEvents(d) {
   const ev = [], mk = E.monthKey(d);
@@ -253,8 +258,12 @@ function dayEvents(d) {
   return ev.sort((a, b) => (a.t || "99").localeCompare(b.t || "99"));
 }
 function pPlanner() {
-  const tabs = `<div class="chips" style="margin-bottom:16px">${PTABS.map(([k, l]) => `<button class="chip" data-act="ptab" data-k="${k}" aria-pressed="${view.planner === k}">${l}</button>`).join("")}</div>`;
-  return `${sampleBanner()}<div class="top"><div class="who"><div class="sub">Planner</div><h1 class="hi">${PTABS.find(t => t[0] === view.planner)[1]}</h1></div><button class="avatar" style="background:var(--ink);color:#fff" data-act="editAppt" data-id="" aria-label="เพิ่มนัดหมาย">${I.plus}</button></div>${tabs}${{ calendar: plCalendar, shift: plShift, appts: plAppts, todo: plTodo }[view.planner]()}`;
+  const tabs = tchips(PTABS, view.planner, "ptab");
+  const mk = view.calMonth || E.monthKey(today()), dim = E.daysInMonth ? E.daysInMonth(mk) : new Date(+mk.slice(0, 4), +mk.slice(5, 7), 0).getDate();
+  const cnt = { D: 0, N: 0, H: 0 }; for (let i = 1; i <= dim; i++) { const c = shiftOf(`${mk}-${String(i).padStart(2, "0")}`).c; cnt[c === "S" ? "H" : c]++; }
+  const nAp = S.planner.appts.reduce((s, a) => s + E.apptOccurrences(a, mk + "-01", `${mk}-${String(dim).padStart(2, "0")}`).length, 0), nTd = S.planner.todos.filter(t => !t.done).length;
+  const dash = `<div class="metrics">${metric("sun", "กะเช้า " + mShort(mk), cnt.D + " วัน")}${metric("moon", "กะดึก", cnt.N + " วัน")}${metric("sofa", "วันหยุด", cnt.H + " วัน", "var(--olive-deep)")}${metric("pin", "นัด · To-do ค้าง", nAp + " · " + nTd)}</div>`;
+  return `${sampleBanner()}<div class="top"><div class="who"><div class="sub">Planner</div><h1 class="hi">${PTABS.find(t => t[0] === view.planner)[1]}</h1></div><span class="row" style="gap:10px"><button class="b3 sq y" data-act="editAppt" data-id="" aria-label="เพิ่มนัดหมาย">${art("plus", 30, "flat")}</button>${profBtn()}</span></div>${dash}${tabs}${{ calendar: plCalendar, shift: plShift, appts: plAppts, todo: plTodo }[view.planner]()}`;
 }
 function agenda(d) {
   const sh = shiftOf(d), ev = dayEvents(d);
@@ -311,7 +320,7 @@ function plAppts() {
   occ.sort((x, y) => (x.d + (x.a.time || "")).localeCompare(y.d + (y.a.time || "")));
   const prio = { 1: "สำคัญมาก", 2: "ปกติ", 3: "ไม่ด่วน" };
   return `<div class="card"><div class="list">${occ.slice(0, 40).map(({ a, d }) => { const sh = shiftOf(d); const clash = a.time && isWork(sh.c) && (crosses(sh.c) ? (a.time >= times(sh.c)[0] || a.time < times(sh.c)[1]) : (a.time >= times(sh.c)[0] && a.time < times(sh.c)[1]));
-    return `<button class="li" data-act="editAppt" data-id="${a.id}"><div class="ic" style="background:${a.type === "วันเกิด" ? "var(--sun-soft)" : "var(--lav)"}">${a.type === "วันเกิด" ? "🎂" : a.type === "วันสำคัญ" ? "⭐" : a.type === "งาน" ? "🛠️" : "📌"}</div><div class="t"><b>${esc(a.title)}</b><small>${dLong(d)}${a.time ? " · " + a.time : ""}${a.place ? " · " + esc(a.place) : ""}${a.repeat && a.repeat !== "none" ? " · ซ้ำ" : ""}</small>${clash ? `<small style="color:var(--warn);display:block">ชนเวลา${SHN[sh.c]}</small>` : ""}</div><span class="tag ${a.priority == 1 ? "r" : ""}">${prio[a.priority || 2]}</span></button>`; }).join("") || `<div class="empty"><b>ยังไม่มีนัดหมาย</b>กดปุ่ม + มุมขวาบนเพื่อเพิ่ม</div>`}</div></div>
+    return `<button class="li" data-act="editAppt" data-id="${a.id}"><div class="ic">${art(a.type === "วันเกิด" ? "cake" : a.type === "วันสำคัญ" ? "star" : a.type === "งาน" ? "tool" : "pin")}</div><div class="t"><b>${esc(a.title)}</b><small>${dLong(d)}${a.time ? " · " + a.time : ""}${a.place ? " · " + esc(a.place) : ""}${a.repeat && a.repeat !== "none" ? " · ซ้ำ" : ""}</small>${clash ? `<small style="color:var(--warn);display:block">ชนเวลา${SHN[sh.c]}</small>` : ""}</div><span class="tag ${a.priority == 1 ? "r" : ""}">${prio[a.priority || 2]}</span></button>`; }).join("") || `<div class="empty"><b>ยังไม่มีนัดหมาย</b>กดปุ่ม + มุมขวาบนเพื่อเพิ่ม</div>`}</div></div>
     <p class="sub" style="margin-top:12px">การเตือนแสดงในหน้า Home ล่วงหน้าตามที่ตั้งไว้ · ถ้าต้องการให้มือถือเด้งเตือนแม้ปิดแอป ให้กด “เพิ่มลง Google Calendar” ในนัดหมายนั้น</p>`;
 }
 function plTodo() {
@@ -329,10 +338,10 @@ function pProfile() {
       <div class="f"><label>ทีม (ตารางกะ)</label><select data-bind="profile.team">${"ABC".split("").map(t => `<option ${S.profile.team === t ? "selected" : ""}>${t}</option>`).join("")}</select></div>
       <div class="f"><label>วันเงินเดือนออก</label><input type="number" min="1" max="31" data-bind="profile.payday" value="${S.profile.payday}"></div></div></div>
     <div class="card"><b>ตั้งค่า</b><div class="list" style="margin-top:4px">
-      ${[["💼", "เงินเดือนและสูตร OT", "money", "salary"], ["🧾", "ภาษีและค่าลดหย่อน", "money", "salary"], ["🗓️", "ตารางกะ", "planner", "shift"], ["🎯", "เป้าหมายและน้ำหนัก Journey", "journey", ""], ["💳", "หนี้สิน", "money", "debt"], ["🛒", "งบรายจ่าย", "money", "expense"]].map(([ic, t, tab, sub]) => `<button class="li" data-act="goSet" data-tab="${tab}" data-sub="${sub}"><div class="ic">${ic}</div><div class="t"><b>${t}</b></div>${I.r}</button>`).join("")}</div></div>
+      ${[["brief", "เงินเดือนและสูตร OT", "money", "salary"], ["receipt", "ภาษีและค่าลดหย่อน", "money", "salary"], ["cal", "ตารางกะ", "planner", "shift"], ["target", "เป้าหมายและน้ำหนัก Journey", "journey", ""], ["card", "หนี้สิน", "money", "debt"], ["cart", "งบรายจ่าย", "money", "expense"]].map(([ic, t, tab, sub]) => `<button class="li" data-act="goSet" data-tab="${tab}" data-sub="${sub}"><div class="ic">${art(ic)}</div><div class="t"><b>${t}</b></div>${I.r}</button>`).join("")}</div></div>
     <div class="card"><b>การแจ้งเตือน</b><p class="sub" style="margin-top:6px">แอปนี้เปิดผ่านเว็บของ Claude จึงส่งการแจ้งเตือนเด้งบนมือถือเองไม่ได้ ตอนนี้ทำได้ 2 แบบ:</p>
-      <div class="list"><div class="li"><div class="ic">🔔</div><div class="t"><b>เตือนในแอป</b><small>นัดหมาย บิล หนี้ใกล้ครบกำหนด แสดงบนหน้า Home ตามเวลาที่ตั้ง</small></div><span class="tag g">เปิดอยู่</span></div>
-      <div class="li"><div class="ic">📲</div><div class="t"><b>เตือนจริงบนมือถือ</b><small>เพิ่มนัดหมาย/กะลง Google Calendar แล้วให้ปฏิทินในมือถือเตือน หรือส่งออกไฟล์ปฏิทินด้านล่าง</small></div></div></div>
+      <div class="list"><div class="li"><div class="ic">${art("bell")}</div><div class="t"><b>เตือนในแอป</b><small>นัดหมาย บิล หนี้ใกล้ครบกำหนด แสดงบนหน้า Home ตามเวลาที่ตั้ง</small></div><span class="tag g">เปิดอยู่</span></div>
+      <div class="li"><div class="ic">${art("phonebell")}</div><div class="t"><b>เตือนจริงบนมือถือ</b><small>เพิ่มนัดหมาย/กะลง Google Calendar แล้วให้ปฏิทินในมือถือเตือน หรือส่งออกไฟล์ปฏิทินด้านล่าง</small></div></div></div>
       <button class="btn ghost sm" style="margin-top:8px" data-act="export" data-k="gcal">${I.dl} ไฟล์ Google Calendar (กะ + นัดหมาย 3 เดือน)</button></div>
   </div><div class="stack">
     <div class="card"><b>ข้อมูลของฉัน</b><p class="sub" style="margin-top:6px">ข้อมูลเก็บในบัญชี Claude ของคุณ (เห็นคนเดียว) และสำรองในเครื่องนี้</p>
@@ -385,7 +394,7 @@ function sheetPay(id) {
     <div class="acts"><button type="button" class="btn ghost" data-act="closeSheet">ยกเลิก</button><button class="btn primary" type="submit">ยืนยันการจ่าย</button></div></form>`, f => {
       const v = formData(f), amt = num(v.amount); if (amt <= 0) return toast("ใส่จำนวนเงิน");
       const pv = E.previewPayment(S, d, amt, v.date); E.applyPayment(S, d.id, pv); audit("pay", `จ่าย ${d.name} ${baht(amt)} (ต้น ${baht(pv.principal)} ดอก ${baht(pv.interest, 2)})`);
-      closeSheet(); commit(); toast(pv.after <= 0 ? "ปิดหนี้บัญชีนี้แล้ว! 🎉" : "บันทึกการจ่ายแล้ว"); if (pv.after <= 0) confetti();
+      closeSheet(); commit(); toast(pv.after <= 0 ? "ปิดหนี้บัญชีนี้แล้ว!" : "บันทึกการจ่ายแล้ว"); if (pv.after <= 0) confetti();
     });
   sheetPay.redraw = () => { const f = $("#sheetBody form"); const v = formData(f); $("#pv").innerHTML = draw(num(v.amount), v.date || today()); };
 }
@@ -405,9 +414,10 @@ function sheetExpItem(id, kind) {
 function sheetSpend(id) {
   const l = S.spend.find(x => x.id === id) || { date: view.expMonth === E.monthKey(today()) ? today() : view.expMonth + "-01", cat: "food" };
   openSheet(`<form data-form="spend"><div class="grab"></div><h3>${id ? "แก้รายจ่าย" : "จดรายจ่าย"}</h3><div class="fgrid" style="margin-top:12px">
-    <div class="f full"><label>จำนวนเงิน</label><input type="number" name="amount" min="0.01" step="any" required inputmode="decimal" value="${l.amount || ""}" style="font-size:24px;font-weight:700"></div>
-    <div class="f"><label>หมวด</label><select name="cat">${opt(E.EXP_CATS, l.cat)}</select></div>
-    <div class="f"><label>วันที่</label><input type="date" name="date" required value="${l.date}"></div>
+    <div class="f full"><label>จำนวนเงิน (บาท)</label><input type="number" name="amount" id="amtIn" min="0.01" step="any" required inputmode="decimal" value="${l.amount || ""}" style="font-size:24px;font-weight:700"></div>
+    <div class="f full"><div class="qamt">${[20, 50, 100, 200, 500, 1000].map(v => `<button type="button" class="qa" data-qa="${v}">+${v}</button>`).join("")}</div></div>
+    <div class="f full"><label>หมวด</label><div class="catpick">${Object.entries(E.EXP_CATS).map(([k, n]) => `<label><input type="radio" name="cat" value="${k}" ${l.cat === k ? "checked" : ""} hidden><span>${art(CAT_ART[k] || "receipt", 44)}<small>${n}</small></span></label>`).join("")}</div></div>
+    <div class="f full"><label>วันที่</label><input type="date" name="date" required value="${l.date}"></div>
     <div class="f full"><label>เป็นของรายการ</label><select name="itemId"><option value="">— ไม่ผูก (ใช้จ่ายทั่วไป)</option>${S.expenses.map(e => `<option value="${e.id}" ${l.itemId === e.id ? "selected" : ""}>${esc(e.name)} (${e.kind === "fixed" ? "คงที่" : "งบผันแปร"})</option>`).join("")}</select><span class="hint">ผูกกับบิลคงที่ = ไม่หักซ้ำ · ผ่อนหนี้ให้บันทึกที่หน้า หนี้สิน</span></div>
     <div class="f full"><label>บันทึก</label><input type="text" name="note" maxlength="60" value="${esc(l.note || "")}" placeholder="เช่น ข้าวเที่ยง"></div></div>
     <div class="acts">${id ? `<button type="button" class="btn danger" data-act="spendDel" data-id="${id}">ลบ</button>` : ""}<button class="btn primary" type="submit">บันทึก</button></div></form>`, f => {
@@ -418,15 +428,15 @@ function sheetSpend(id) {
       if (!id) S.spend.push(rec); closeSheet(); commit(); toast("บันทึกแล้ว");
     });
 }
-const ICONS = ["🎯", "📷", "🚗", "📱", "💻", "✈️", "🏠", "🛵", "🎸", "🛟", "💍", "🎓"];
+const ICONS = GOAL_ICONS;
 function sheetGoal(id) {
-  const g = S.goals.find(x => x.id === id) || { icon: "🎯", priority: 2 };
+  const g = S.goals.find(x => x.id === id) || { icon: "target", priority: 2 };
   const gi = id ? E.goalInfo(g) : null;
   openSheet(`<form data-form="goal"><div class="grab"></div><h3>${id ? esc(g.name) : "เป้าหมายใหม่"}</h3>
     ${id ? `<div class="sub">${baht(gi.saved)} จาก ${baht(gi.target)} · ${Math.round(gi.pct * 100)}%</div>
       <div class="card flat" style="margin-top:12px;padding:14px"><b>เก็บเงินเข้าเป้าหมาย</b><div class="row" style="margin-top:8px;flex-wrap:nowrap"><input type="number" id="gAdd" min="1" step="any" placeholder="จำนวนเงิน" inputmode="decimal"><button type="button" class="btn primary sm" data-act="goalAdd" data-id="${id}">เก็บ</button></div>
       <div class="list" style="margin-top:6px">${(g.contributions || []).slice(-4).reverse().map(c => `<div class="li"><div class="t"><small>${dShort(c.date)}</small></div><div class="v">+${baht(c.amount)}</div><button type="button" class="link" data-act="contribDel" data-g="${id}" data-c="${c.id}">ลบ</button></div>`).join("")}</div></div>` : ""}
-    <div class="f" style="margin-top:12px"><label>ไอคอน</label><div class="row" style="gap:6px">${ICONS.map(i => `<label style="cursor:pointer"><input type="radio" name="icon" value="${i}" ${g.icon === i ? "checked" : ""} hidden><span class="ic" style="${g.icon === i ? "background:var(--sun)" : ""}">${i}</span></label>`).join("")}<label class="ic" style="cursor:pointer" title="รูปสินค้า">📎<input type="file" accept="image/*" data-goalimg hidden></label></div>${g.img ? `<img src="${g.img}" alt="" style="width:72px;height:72px;border-radius:18px;object-fit:cover;margin-top:8px">` : ""}<input type="hidden" name="img" value="${g.img || ""}"></div>
+    <div class="f" style="margin-top:12px"><label>ไอคอน</label><div class="row" style="gap:6px">${ICONS.map(i => `<label style="cursor:pointer"><input type="radio" name="icon" value="${i}" ${g.icon === i ? "checked" : ""} hidden><span class="pick ${g.icon === i ? "on" : ""}">${art(i, 40)}</span></label>`).join("")}<label class="pick" style="cursor:pointer" title="รูปสินค้า">${art("clip", 40)}<input type="file" accept="image/*" data-goalimg hidden></label></div>${g.img ? `<img src="${g.img}" alt="" style="width:72px;height:72px;border-radius:18px;object-fit:cover;margin-top:8px">` : ""}<input type="hidden" name="img" value="${g.img || ""}"></div>
     <div class="fgrid" style="margin-top:12px">
     <div class="f full"><label>ชื่อเป้าหมาย</label><input type="text" name="name" required maxlength="40" value="${esc(g.name || "")}" placeholder="เช่น กล้อง Fuji X-T50"></div>
     <div class="f"><label>ราคาเป้าหมาย</label><input type="number" name="target" min="1" step="any" required value="${g.target || ""}"></div>
@@ -437,7 +447,7 @@ function sheetGoal(id) {
     <div class="f"><label>เงินสำรองฉุกเฉิน</label><select name="isEmergency">${opt({ 0: "ไม่ใช่", 1: "ใช่" }, g.isEmergency ? 1 : 0)}</select></div></div>
     <div class="acts">${id ? `<button type="button" class="btn danger" data-act="goalDel" data-id="${id}">ลบ</button>` : ""}<button class="btn primary" type="submit">บันทึก</button></div></form>`, f => {
       const v = formData(f); if (!v.name.trim()) return toast("ใส่ชื่อเป้าหมาย"); if (num(v.target) <= 0) return toast("ใส่ราคาเป้าหมาย");
-      const rec = Object.assign(S.goals.find(x => x.id === id) || { id: E.uid(), contributions: [], createdAt: Date.now() }, { name: v.name.trim(), icon: v.icon || "🎯", img: v.img || null, target: num(v.target), have: num(v.have), monthly: num(v.monthly), deadline: v.deadline || null, priority: +v.priority, isEmergency: v.isEmergency === "1" });
+      const rec = Object.assign(S.goals.find(x => x.id === id) || { id: E.uid(), contributions: [], createdAt: Date.now() }, { name: v.name.trim(), icon: v.icon || "target", img: v.img || null, target: num(v.target), have: num(v.have), monthly: num(v.monthly), deadline: v.deadline || null, priority: +v.priority, isEmergency: v.isEmergency === "1" });
       if (rec.isEmergency) S.goals.forEach(x => { if (x !== rec) x.isEmergency = false; });
       if (!id) S.goals.push(rec); audit("goal", `${id ? "แก้" : "สร้าง"}เป้าหมาย ${rec.name}`); closeSheet(); commit();
     });
@@ -479,7 +489,7 @@ function sheetShiftDay(d) {
 }
 function sheetCp(i) {
   const jp = E.journeyProgress(S), cp = E.CHECKPOINTS[i], ok = jp.reached[cp.id];
-  openSheet(`<div class="grab"></div><div style="text-align:center"><div style="font-size:52px">${i === 5 ? "🏔️" : ok ? "⛺" : "🔒"}</div><h3>${cp.name}</h3><div class="sub">${cp.sub}</div>
+  openSheet(`<div class="grab"></div><div style="text-align:center"><div style="display:grid;place-items:center">${art(i === 5 ? "peak" : ok ? "tent" : "lock", 72)}</div><h3>${cp.name}</h3><div class="sub">${cp.sub}</div>
     <div class="tag ${ok ? "g" : "y"}" style="margin-top:12px">${ok ? "ผ่านแล้ว" : "ยังไม่ถึง"}</div><p style="margin-top:14px">${cpHint(cp.id, jp)}</p></div>
     <div class="acts"><button class="btn primary" data-act="closeSheet">ไปต่อ!</button></div>`);
 }
@@ -502,8 +512,8 @@ function buildSample() {
   s.debtPayments = [{ id: "p1", debtId: "d1", date: `${mk}-05`, month: mk, amount: 2600, interest: 330, principal: 2270, before: 26770, after: 24500 }];
   s.expenses = [{ id: "e1", name: "ค่าห้อง", cat: "home", kind: "fixed", amount: 4500, dueDay: 1 }, { id: "e2", name: "ค่าไฟ", cat: "power", kind: "fixed", amount: 900, dueDay: 15 }, { id: "e3", name: "ค่าโทรศัพท์", cat: "phone", kind: "fixed", amount: 499, dueDay: 28 }, { id: "e4", name: "ค่าอาหาร", cat: "food", kind: "variable", amount: 5500 }, { id: "e5", name: "ค่าน้ำมัน", cat: "fuel", kind: "variable", amount: 1800 }];
   s.spend = [{ id: "s1", date: `${mk}-01`, amount: 4500, cat: "home", itemId: "e1" }, { id: "s2", date: `${mk}-03`, amount: 320, cat: "food", itemId: "e4", note: "ข้าว + กาแฟ" }, { id: "s3", date: `${mk}-07`, amount: 600, cat: "fuel", itemId: "e5" }, { id: "s4", date: td, amount: 145, cat: "food", itemId: "e4", note: "ข้าวเที่ยง" }];
-  s.goals = [{ id: "g1", name: "เงินสำรองฉุกเฉิน", icon: "🛟", target: 30000, have: 8000, monthly: 1500, priority: 1, isEmergency: true, contributions: [{ id: "c1", date: `${mk}-02`, amount: 1500 }] },
-             { id: "g2", name: "กล้องถ่ายรูป", icon: "📷", target: 28000, have: 6000, monthly: 1000, priority: 2, deadline: E.addDays(td, 240), contributions: [] }];
+  s.goals = [{ id: "g1", name: "เงินสำรองฉุกเฉิน", icon: "buoy", target: 30000, have: 8000, monthly: 1500, priority: 1, isEmergency: true, contributions: [{ id: "c1", date: `${mk}-02`, amount: 1500 }] },
+             { id: "g2", name: "กล้องถ่ายรูป", icon: "camera", target: 28000, have: 6000, monthly: 1000, priority: 2, deadline: E.addDays(td, 240), contributions: [] }];
   s.planner.appts = [{ id: "a1", title: "เปลี่ยนเหล็กจัดฟัน", date: E.addDays(td, 3), time: "12:00", place: "คลินิกทันตกรรม", type: "นัดหมาย", priority: 1, remind: [1440, 180], repeat: "none" }];
   s.planner.todos = [{ id: "t1", title: "ยื่นใบลาพักร้อน", due: E.addDays(td, 2), priority: 1, done: false }];
   return s;
@@ -567,9 +577,9 @@ async function importFile(file) {
 }
 
 /* ───────── render & events ───────── */
-const TABS = [["home", "Home", I.home], ["money", "Money", I.money], ["journey", "Journey", I.mtn], ["planner", "Planner", I.cal], ["profile", "Profile", I.user]];
+const TABS = [["home", "หน้าหลัก", "house"], ["money", "เงิน", "wallet"], ["scan", "สแกน OT", "scan"], ["journey", "ผจญภัย", "peak"], ["planner", "แผน", "cal"]];
 function render() {
-  $("#nav").innerHTML = TABS.map(([k, l, ic]) => k === "journey" ? `<button class="jr" data-act="go" data-tab="journey" ${view.tab === k ? 'aria-current="page"' : ""} aria-label="Journey"><span class="fab">${ic}</span><span>${l}</span></button>` : `<button data-act="go" data-tab="${k}" ${view.tab === k ? 'aria-current="page"' : ""}>${ic}<span>${l}</span></button>`).join("");
+  $("#nav").innerHTML = TABS.map(([k, l, ic]) => k === "scan" ? `<button class="scanfab" data-act="quickScan" aria-label="สแกนใบ OT ด่วน"><span class="fab">${art("scan", 64, "flat")}</span><span>${l}</span></button>` : `<button data-act="go" data-tab="${k}" ${view.tab === k ? 'aria-current="page"' : ""}><span class="nic">${art(ic, 34, "flat")}</span><span>${l}</span></button>`).join("");
   $("#main").innerHTML = ({ home: pHome, money: pMoney, journey: pJourney, planner: pPlanner, profile: pProfile }[view.tab] || pHome)();
   if (view.tab === "home") initDial();
 }
@@ -584,6 +594,10 @@ document.addEventListener("click", e => {
   const H = {
     go: () => go(d.tab), goMoney: () => go("money", d.sub), goPlanner: () => go("planner", d.sub), goSet: () => go(d.tab, d.sub),
     mtab: () => { view.money = d.k; render(); }, ptab: () => { view.planner = d.k; render(); },
+    quickScan: () => { go("money", "ot"); setTimeout(() => { const i = document.querySelector("input[data-scan][capture]"); if (i) i.click(); }, 60); },
+    catTap: () => { view.catTap = (view.catTap || 0) + 1; const b = el.querySelector(".cat"); if (b) { b.classList.remove("jump"); void b.getBBox(); b.classList.add("jump"); }
+      const dd = view.homeDay || today(), L = CAT_LINES[shiftOf(dd).c] || CAT_LINES.H, bb = document.querySelector(".bubble b"); if (bb) bb.textContent = L[(E.parse(dd).getDate() + view.catTap) % L.length];
+      const bu = document.querySelector(".bubble"); if (bu) { bu.classList.remove("pop"); void bu.offsetWidth; bu.classList.add("pop"); } try { navigator.vibrate && navigator.vibrate(8); } catch (x) {} },
     planDay: () => { view.sel = d.d; view.calMonth = E.monthKey(d.d); view.calView = "day"; go("planner", "calendar"); },
     closeSheet, sampleOn: () => { REAL = S; S = buildSample(); view.otDraft = null; toast("เปิดโหมดตัวอย่าง"); go("home"); }, sampleOff: () => { S = REAL; REAL = null; view.otDraft = null; toast("กลับสู่ข้อมูลจริง"); render(); },
     otKey: () => { if (view.otDraft?.dirty && !confirmLeave()) return; view.otKey = d.k; view.otDraft = null; render(); },
@@ -659,3 +673,4 @@ setInterval(() => { if (view.tab === "home" && !document.querySelector(".sheet.s
 
 
 
+document.addEventListener("click", e => { const q = e.target.closest("[data-qa]"); if (!q) return; const i = document.getElementById("amtIn"); if (i) { i.value = Math.round((num(i.value) + +q.dataset.qa) * 100) / 100; q.classList.remove("tick"); void q.offsetWidth; q.classList.add("tick"); } });
