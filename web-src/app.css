@@ -293,3 +293,16 @@ input.miss{border-color:#F5B04F;background:#FFF6E6}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 #pdfstage{position:fixed;left:-99999px;top:0;width:794px;background:#fff}
+
+/* other teams (small) */
+.tcs{display:flex;gap:2px;justify-content:center}
+.tc{font-style:normal;display:inline-grid;place-items:center;min-width:14px;height:14px;padding:0 2px;border-radius:4px;font-size:9px;font-weight:800;line-height:1;color:var(--ink);background:var(--sand)}
+.tc.kD{background:var(--D)}.tc.kN{background:var(--N);color:#fff}.tc.kH{background:var(--H);color:#fff}.tc.kS{background:var(--S);color:#fff}
+p .tc{min-width:auto;padding:0 5px;height:16px;font-size:10px}
+.wk .tcs{margin-top:-2px}
+.cc .tcs .tc{min-width:12px;height:12px;font-size:8px;border-radius:3px}
+.teams{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:12px 18px;text-align:left;width:100%}
+.tl{display:inline-flex;align-items:center;gap:6px;font-size:14px}
+.tl .tc{min-width:18px;height:18px;font-size:10px}
+.tl b{font-weight:700}
+.cc{min-height:72px}

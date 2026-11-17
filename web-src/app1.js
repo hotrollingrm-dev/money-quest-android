@@ -46,6 +46,11 @@ function shiftOf(date, st = S) {
   return o ? { c: o, est: base.est, sw: true, base: base.c } : { ...base, sw: false, base: base.c };
 }
 const SHN = { D: "กะเช้า", N: "กะดึก", H: "วันหยุด", S: "หยุดโรงงาน" };
+const SHS = { D: "เช้า", N: "ดึก", H: "หยุด", S: "ปิดรง." };
+/** The two other teams of the 3G2S roster (shown small; the user's own team stays the main one). */
+const otherTeams = () => S.shift.mode === "roster" ? ["A", "B", "C"].filter(t => t !== (S.profile.team || "C")) : [];
+const teamChips = d => { const o = otherTeams(); return o.length ? `<span class="tcs">${o.map(t => { const c = rosterCode(t, d).c; return `<i class="tc k${c}" title="Team ${t} ${SHN[c]}">${t}</i>`; }).join("")}</span>` : ""; };
+const teamLine = d => otherTeams().map(t => { const c = rosterCode(t, d).c; return `<span class="tl"><i class="tc k${c}">${t}</i>Team ${t} <b>${SHS[c]}</b>${isWork(c) ? ` <span class="muted">${times(c)[0]}</span>` : ""}</span>`; }).join("");
 const isWork = c => c === "D" || c === "N";
 const times = c => S.shift.times[c] || ["", ""];
 const crosses = c => { const [a, b] = times(c); return b <= a; };
@@ -194,7 +199,7 @@ function pHome() {
   const name = S.profile.name || "เพื่อนนักเดินทาง";
   const ws = E.addDays(td, -((E.parse(td).getDay() + 6) % 7));
   const week = Array.from({ length: 7 }, (_, i) => { const d = E.addDays(ws, i), c = shiftOf(d).c;
-    return `<button class="wk ${d === td ? "sel" : ""} ${HOL[d] ? "hol" : ""}" data-act="planDay" data-d="${d}" aria-label="${dLong(d)} ${SHN[c]}">${DOW[E.parse(d).getDay()]}<span class="n">${E.parse(d).getDate()}</span><span class="sd" style="background:var(--${c})"></span></button>`; }).join("");
+    return `<button class="wk ${d === td ? "sel" : ""} ${HOL[d] ? "hol" : ""}" data-act="planDay" data-d="${d}" aria-label="${dLong(d)} ${SHN[c]}">${DOW[E.parse(d).getDay()]}<span class="n">${E.parse(d).getDate()}</span><span class="sd" style="background:var(--${c})"></span>${teamChips(d)}</button>`; }).join("");
   // today's shift status
   const now = new Date(); let status = "", c = sh.c;
   const yd = E.addDays(td, -1), yc = shiftOf(yd).c;
@@ -246,7 +251,7 @@ function pHome() {
   <div class="top"><div class="who"><div class="sub">${greet} · ${dLong(td)}</div><h1 class="hi">สวัสดี, ${esc(name)}</h1></div>
     <button class="avatar" data-act="go" data-tab="profile" aria-label="โปรไฟล์">${esc((S.profile.name || "M").slice(0, 1).toUpperCase())}</button></div>
   <div class="week">${week}</div>
-  <div class="home-grid"><div class="stack">${hero}${cash}</div>
+  <div class="home-grid"><div class="stack">${hero}${otherTeams().length ? `<button class="card teams" data-act="goPlanner" data-sub="shift"><span class="muted" style="font-size:13px;font-weight:600">วันนี้ทีมอื่น</span>${teamLine(td)}</button>` : ""}${cash}</div>
   <div class="stack">
     ${rem.length ? `<div class="card"><div class="between" style="margin-bottom:6px"><b>${I.bell.replace('class="i"', 'class="i" style="width:18px;height:18px;vertical-align:-3px"')} เตือนเร็ว ๆ นี้</b><span class="tag y">${rem.length}</span></div>${rem.slice(0, 4).map(r => `<div class="li"><span class="dot" style="background:${r.overdue ? "var(--bad)" : r.kind === "appt" ? "var(--lav-ink)" : "var(--sun-deep)"}"></span><div class="t"><b>${esc(r.title)}</b><small>${esc(r.sub)}</small></div></div>`).join("")}</div>` : ""}
     <div class="sec-h" style="margin-top:4px"><h2>กำลังจะถึง</h2><button data-act="goPlanner" data-sub="calendar">ดูทั้งหมด</button></div>

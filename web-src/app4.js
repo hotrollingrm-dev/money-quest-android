@@ -99,7 +99,7 @@ function pushWidget() {
     const td = today(), sh = shiftOf(td), av = E.available(S, E.monthKey(td), td);
     let next = ""; for (let i = 1; i < 30; i++) { const d = E.addDays(td, i), c = shiftOf(d).c; if (isWork(c)) { next = `ถัดไป ${dShort(d)} ${SHN[c]}`; break; } }
     let toOff = 0; for (let i = 0; i < 30; i++) if (!isWork(shiftOf(E.addDays(td, i)).c)) { toOff = i; break; }
-    MQN.setWidget({ shift: SHN[sh.c], time: isWork(sh.c) ? times(sh.c).join("–") : `Team ${S.profile.team}`, status: isWork(sh.c) ? (toOff ? `อีก ${toOff} วันถึงวันหยุด` : "") : "พักผ่อนให้เต็มที่", money: S.pay.salary ? baht(av.safe) : "—", daily: S.pay.salary ? `วันละ ${baht(av.daily)}` : "ตั้งเงินเดือนในแอป", next, kind: sh.c });
+    MQN.setWidget({ shift: SHN[sh.c], time: isWork(sh.c) ? times(sh.c).join("–") : `Team ${S.profile.team}`, status: [isWork(sh.c) ? (toOff ? `อีก ${toOff} วันถึงวันหยุด` : "") : "พักผ่อนให้เต็มที่", otherTeams().map(t => `${t} ${SHS[rosterCode(t, td).c]}`).join(" · ")].filter(Boolean).join("\n"), money: S.pay.salary ? baht(av.safe) : "—", daily: S.pay.salary ? `วันละ ${baht(av.daily)}` : "ตั้งเงินเดือนในแอป", next, kind: sh.c });
   } catch (e) {}
 }
 
