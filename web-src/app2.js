@@ -571,6 +571,7 @@ const TABS = [["home", "Home", I.home], ["money", "Money", I.money], ["journey",
 function render() {
   $("#nav").innerHTML = TABS.map(([k, l, ic]) => k === "journey" ? `<button class="jr" data-act="go" data-tab="journey" ${view.tab === k ? 'aria-current="page"' : ""} aria-label="Journey"><span class="fab">${ic}</span><span>${l}</span></button>` : `<button data-act="go" data-tab="${k}" ${view.tab === k ? 'aria-current="page"' : ""}>${ic}<span>${l}</span></button>`).join("");
   $("#main").innerHTML = ({ home: pHome, money: pMoney, journey: pJourney, planner: pPlanner, profile: pProfile }[view.tab] || pHome)();
+  if (view.tab === "home") initDial();
 }
 function setPath(path, val) {
   const ks = path.split("."); let o = S;

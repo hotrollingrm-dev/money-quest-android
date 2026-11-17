@@ -191,37 +191,121 @@ function remindersSoon(horizonH = 36) {
   return out.sort((a, b) => a.at - b.at);
 }
 
+
+/* ───────── Home: the day dial + the shift card for the chosen day ───────── */
+function heroHTML(d) {
+  const td = today(), isToday = d === td, sh = shiftOf(d);
+  const now = new Date(); let status = "", c = sh.c;
+  const dur = ms => { const m = Math.max(0, Math.round(ms / 6e4)); return m >= 60 ? `${Math.floor(m / 60)} ชม. ${m % 60} นาที` : `${m} นาที`; };
+  if (isToday) {
+    const yd = E.addDays(td, -1), yc = shiftOf(yd).c;
+    if (isWork(yc) && crosses(yc) && now < atTime(td, times(yc)[1])) { c = yc; status = `ต่อจากเมื่อวาน · เลิกในอีก ${dur(atTime(td, times(yc)[1]) - now)}`; }
+    else if (isWork(c)) { const s = atTime(td, times(c)[0]), e = crosses(c) ? atTime(E.addDays(td, 1), times(c)[1]) : atTime(td, times(c)[1]);
+      status = now < s ? `เริ่มงานในอีก ${dur(s - now)}` : now < e ? `กำลังทำงาน · เลิกในอีก ${dur(e - now)}` : "เลิกงานแล้ว พักผ่อนเถอะ"; }
+  } else { const n = E.diffDays(td, d); status = n === 1 ? "พรุ่งนี้" : n === -1 ? "เมื่อวาน" : n > 0 ? `อีก ${n} วัน` : `${-n} วันก่อน`; }
+  let toOff = 0; for (let i = 0; i < 30; i++) { if (!isWork(shiftOf(E.addDays(d, i)).c)) { toOff = i; break; } }
+  const offLine = isWork(sh.c) ? (toOff === 0 ? "" : `อีก ${toOff} วันถึงวันหยุด`) : (() => { for (let i = 1; i < 30; i++) { const n = E.addDays(d, i), nc = shiftOf(n).c; if (isWork(nc)) return `${SHN[nc]}ถัดไป ${dShort(n)} ${times(nc)[0]}`; } return ""; })();
+  const nx = E.addDays(d, 1), tm = shiftOf(nx).c;
+  const sceneC = isWork(c) ? c : sh.c === "S" ? "S" : "H";
+  return `<div class="hero">
+    <button class="scene ${sceneC}" style="background:${SCENE_BG[sceneC]}" data-act="planDay" data-d="${d}">
+      <div class="ttl">${SHN[c]}${sh.sw && c === sh.c ? " (สลับกะ)" : ""}</div>
+      <div class="tm">${isToday ? "" : dLong(d).replace(/ \d{4}$/, "") + " · "}${isWork(c) ? `${times(c).join(" – ")} · ${fmt(shiftHours(c), 2).replace(/\.?0+$/, "")} ชม.` : "Team " + S.profile.team}</div>
+      ${status ? `<div class="st">${esc(status)}</div>` : ""}${offLine ? `<div class="st" style="margin-left:6px">${esc(offLine)}</div>` : ""}
+      ${HOL[d] ? `<div class="st" style="margin-left:6px;color:var(--bad)">${esc(HOL[d][0])}</div>` : ""}
+      ${sceneArt(sceneC)}
+      <div style="height:${isWork(c) ? 150 : 140}px"></div>
+    </button>
+    <button class="side-next" data-act="dialGo" data-d="${nx}">${isToday ? "พรุ่งนี้" : dShort(nx)} <b>${SHN[tm]}</b></button></div>
+  ${otherTeams().length ? `<button class="card teams" data-act="goPlanner" data-sub="shift"><span class="muted" style="font-size:13px;font-weight:600">${isToday ? "วันนี้ทีมอื่น" : "ทีมอื่น " + dShort(d)}</span>${teamLine(d)}</button>` : ""}`;
+}
+const dial = { pos: null, raf: 0, v: 0, drag: null, lastInt: null };
+function dialHTML() {
+  return `<div class="dial" id="dial" tabindex="0" role="slider" aria-label="หมุนเพื่อเลือกวัน" aria-valuetext="">
+    <div class="dial-face" id="dialFace"></div>
+    <div class="dial-ptr" aria-hidden="true"></div>
+    <div class="dial-label" id="dialLabel"></div></div>`;
+}
+function dialGeom(el) { const w = el.clientWidth, R = Math.max(260, w * 1.05), step = 62 / R; return { w, R, step, cy: R + 46 }; }
+function drawDial() {
+  const el = $("#dial"), face = $("#dialFace"); if (!el || !face) return;
+  const td = today(), p = dial.pos, g = dialGeom(el), base = Math.round(p);
+  let html = "";
+  // clock ticks along the rim
+  for (let t = Math.floor((p - 6) * 4); t <= Math.ceil((p + 6) * 4); t++) {
+    const k = t / 4, th = (k - p) * g.step; if (Math.abs(th) > 1.2) continue;
+    const x = g.w / 2 + (g.R + 26) * Math.sin(th), y = g.cy - (g.R + 26) * Math.cos(th), major = t % 4 === 0;
+    html += `<i class="tick ${major ? "mj" : ""}" style="transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px) rotate(${(th * 180 / Math.PI).toFixed(2)}deg);opacity:${Math.max(0, 1 - Math.abs(k - p) / 6).toFixed(2)}"></i>`;
+  }
+  for (let k = base - 5; k <= base + 5; k++) {
+    const d = E.addDays(td, k), dd = E.parse(d), off = k - p, th = off * g.step;
+    const x = g.w / 2 + g.R * Math.sin(th), y = g.cy - g.R * Math.cos(th), a = Math.abs(off);
+    const sc = Math.max(.62, 1 - a * .09), op = Math.max(0, 1 - a * .17);
+    const c = shiftOf(d).c, on = a < .5;
+    html += `<button class="dd ${on ? "on" : ""} ${k === 0 ? "now" : ""} ${HOL[d] ? "hol" : ""}" data-act="dialGo" data-d="${d}" tabindex="-1" style="transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px) rotate(${(th * 180 / Math.PI).toFixed(2)}deg) scale(${sc.toFixed(3)});opacity:${op.toFixed(2)}" aria-label="${dLong(d)} ${SHN[c]}">
+      <span class="dw">${DOW[dd.getDay()]}</span><span class="dn k${c}">${dd.getDate()}</span>${teamChips(d)}</button>`;
+  }
+  face.innerHTML = html;
+  const cur = E.addDays(td, base), lab = $("#dialLabel");
+  if (lab) lab.innerHTML = base === 0 ? `<b>วันนี้</b>` : `<b>${dShort(cur)}</b> <button class="link" data-act="dialGo" data-d="${td}">กลับวันนี้</button>`;
+  el.setAttribute("aria-valuetext", dLong(cur));
+  if (dial.lastInt !== base) { if (dial.lastInt !== null) { try { navigator.vibrate && navigator.vibrate(4); } catch (e) {} } dial.lastInt = base; }
+}
+function dialSettle() {
+  const td = today(), d = E.addDays(td, Math.round(dial.pos));
+  if (view.homeDay !== d) { view.homeDay = d; const hb = $("#heroBox"); if (hb) hb.innerHTML = heroHTML(d); }
+}
+function dialAnimateTo(target) {
+  cancelAnimationFrame(dial.raf); const from = dial.pos, t0 = performance.now(), dur = Math.min(700, 220 + Math.abs(target - from) * 60);
+  const step = t => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); dial.pos = from + (target - from) * e; drawDial(); if (k < 1) dial.raf = requestAnimationFrame(step); else { dial.pos = target; drawDial(); dialSettle(); } };
+  dial.raf = requestAnimationFrame(step);
+}
+function dialCoast() {
+  cancelAnimationFrame(dial.raf); let last = performance.now();
+  const step = t => { const dt = Math.min(40, t - last); last = t; dial.pos += dial.v * dt; dial.v *= Math.pow(.992, dt);
+    drawDial(); if (Math.abs(dial.v) > .0008) dial.raf = requestAnimationFrame(step); else dialAnimateTo(Math.round(dial.pos)); };
+  dial.raf = requestAnimationFrame(step);
+}
+function initDial() {
+  const el = $("#dial"); if (!el) return;
+  const td = today();
+  if (dial.pos === null || dial.day !== td) { dial.pos = view.homeDay ? E.diffDays(td, view.homeDay) : 0; dial.day = td; }
+  drawDial();
+  el.addEventListener("pointerdown", e => {
+    cancelAnimationFrame(dial.raf);
+    dial.drag = { x: e.clientX, y: e.clientY, p: dial.pos, t: performance.now(), lx: e.clientX, lt: performance.now(), moved: false, id: e.pointerId };
+    dial.v = 0;
+  });
+  el.addEventListener("pointermove", e => {
+    const g = dial.drag; if (!g || g.id !== e.pointerId) return;
+    const dx = e.clientX - g.x; if (!g.moved && Math.abs(dx) < 6) return;
+    if (!g.moved) { g.moved = true; try { el.setPointerCapture(e.pointerId); } catch (x) {} }
+    const geo = dialGeom(el), perDay = geo.R * geo.step;
+    dial.pos = g.p - dx / perDay;
+    const now = performance.now(), dt = Math.max(1, now - g.lt); dial.v = -(e.clientX - g.lx) / perDay / dt; g.lx = e.clientX; g.lt = now;
+    drawDial(); e.preventDefault();
+  });
+  const end = e => { const g = dial.drag; if (!g || g.id !== e.pointerId) return; dial.drag = null; if (!g.moved) return;
+    el.dataset.dragged = "1"; setTimeout(() => delete el.dataset.dragged, 50);
+    if (performance.now() - g.lt > 80) dial.v = 0; dial.v = Math.max(-.03, Math.min(.03, dial.v)); dialCoast(); };
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+  let wt; el.addEventListener("wheel", e => { e.preventDefault(); cancelAnimationFrame(dial.raf); dial.pos += (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) / 90; drawDial(); clearTimeout(wt); wt = setTimeout(() => dialAnimateTo(Math.round(dial.pos)), 140); }, { passive: false });
+  el.addEventListener("keydown", e => { if (e.key === "ArrowRight") { e.preventDefault(); dialAnimateTo(Math.round(dial.pos) + 1); } if (e.key === "ArrowLeft") { e.preventDefault(); dialAnimateTo(Math.round(dial.pos) - 1); } });
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-act=dialGo]"); if (!b) return; e.preventDefault(); e.stopPropagation();
+  if ($("#dial")?.dataset.dragged) return;
+  const k = E.diffDays(today(), b.dataset.d); if (Math.round(dial.pos) === k && b.classList.contains("on")) { view.sel = b.dataset.d; view.calMonth = E.monthKey(b.dataset.d); view.calView = "day"; go("planner", "calendar"); return; }
+  if (!$("#dial")) { view.homeDay = b.dataset.d; dial.pos = k; go("home"); return; }
+  dialAnimateTo(k); }, true);
+
 /* ───────── HOME ───────── */
 function pHome() {
   const { td, mk, av, jp, xp } = snapshot();
   const sel = view.sel, sh = shiftOf(td);
   const hr = new Date().getHours(); const greet = hr < 11 ? "อรุณสวัสดิ์" : hr < 17 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น";
   const name = S.profile.name || "เพื่อนนักเดินทาง";
-  const ws = E.addDays(td, -((E.parse(td).getDay() + 6) % 7));
-  const week = Array.from({ length: 7 }, (_, i) => { const d = E.addDays(ws, i), c = shiftOf(d).c;
-    return `<button class="wk ${d === td ? "sel" : ""} ${HOL[d] ? "hol" : ""}" data-act="planDay" data-d="${d}" aria-label="${dLong(d)} ${SHN[c]}">${DOW[E.parse(d).getDay()]}<span class="n">${E.parse(d).getDate()}</span><span class="sd" style="background:var(--${c})"></span>${teamChips(d)}</button>`; }).join("");
-  // today's shift status
-  const now = new Date(); let status = "", c = sh.c;
-  const yd = E.addDays(td, -1), yc = shiftOf(yd).c;
-  const dur = ms => { const m = Math.max(0, Math.round(ms / 6e4)); return m >= 60 ? `${Math.floor(m / 60)} ชม. ${m % 60} นาที` : `${m} นาที`; };
-  if (isWork(yc) && crosses(yc) && now < atTime(td, times(yc)[1])) { c = yc; status = `ต่อจากเมื่อวาน · เลิกในอีก ${dur(atTime(td, times(yc)[1]) - now)}`; }
-  else if (isWork(c)) { const s = atTime(td, times(c)[0]), e = crosses(c) ? atTime(E.addDays(td, 1), times(c)[1]) : atTime(td, times(c)[1]);
-    status = now < s ? `เริ่มงานในอีก ${dur(s - now)}` : now < e ? `กำลังทำงาน · เลิกในอีก ${dur(e - now)}` : "เลิกงานแล้ว พักผ่อนเถอะ"; }
-  let toOff = 0; for (let i = 0; i < 30; i++) { if (!isWork(shiftOf(E.addDays(td, i)).c)) { toOff = i; break; } }
-  const offLine = isWork(sh.c) ? (toOff === 0 ? "" : `อีก ${toOff} วันถึงวันหยุด`) : (() => { for (let i = 1; i < 30; i++) { const n = E.addDays(td, i), nc = shiftOf(n).c; if (isWork(nc)) return `${SHN[nc]}ถัดไป ${dShort(n)} ${times(nc)[0]}`; } return ""; })();
   const otRec = S.ot[E.periodKeyFor(td)]; const otH = otRec ? E.otCalc(otRec.values, S.pay).otHours : 0;
-  const tm = shiftOf(E.addDays(td, 1)).c;
-  const sceneC = isWork(c) ? c : sh.c === "S" ? "S" : "H";
-  const hero = `<div class="hero">
-    <button class="scene ${sceneC}" style="background:${SCENE_BG[sceneC]}" data-act="planDay" data-d="${td}">
-      <div class="ttl">${SHN[c]}${sh.sw && c === sh.c ? " (สลับกะ)" : ""}</div>
-      <div class="tm">${isWork(c) ? `${times(c).join(" – ")} · ${fmt(shiftHours(c), 2).replace(/\.?0+$/, "")} ชม.` : "Team " + S.profile.team + " · " + dShort(td)}</div>
-      ${status || offLine ? `<div class="st">${esc(status || offLine)}</div>` : ""}
-      ${status && offLine ? `<div class="st" style="margin-left:6px">${esc(offLine)}</div>` : ""}
-      ${sceneArt(sceneC)}
-      <div style="height:${isWork(c) ? 150 : 140}px"></div>
-    </button>
-    <button class="side-next" data-act="planDay" data-d="${E.addDays(td, 1)}">พรุ่งนี้ <b>${SHN[tm]}</b></button></div>`;
+  const hero = `<div id="heroBox">${heroHTML(view.homeDay || td)}</div>`;
   // money
   const safe = av.safe;
   const bars = [{ v: av.fixed, c: "var(--cocoa)" }, { v: av.debt, c: "var(--bad)" }, { v: av.savings + av.goals, c: "var(--olive)" }, { v: av.varSpent, c: "var(--taupe)" }, { v: Math.max(0, safe), c: "var(--sun)" }];
@@ -250,8 +334,8 @@ function pHome() {
   return `${sampleBanner()}
   <div class="top"><div class="who"><div class="sub">${greet} · ${dLong(td)}</div><h1 class="hi">สวัสดี, ${esc(name)}</h1></div>
     <button class="avatar" data-act="go" data-tab="profile" aria-label="โปรไฟล์">${esc((S.profile.name || "M").slice(0, 1).toUpperCase())}</button></div>
-  <div class="week">${week}</div>
-  <div class="home-grid"><div class="stack">${hero}${otherTeams().length ? `<button class="card teams" data-act="goPlanner" data-sub="shift"><span class="muted" style="font-size:13px;font-weight:600">วันนี้ทีมอื่น</span>${teamLine(td)}</button>` : ""}${cash}</div>
+  ${dialHTML()}
+  <div class="home-grid"><div class="stack">${hero}${cash}</div>
   <div class="stack">
     ${rem.length ? `<div class="card"><div class="between" style="margin-bottom:6px"><b>${I.bell.replace('class="i"', 'class="i" style="width:18px;height:18px;vertical-align:-3px"')} เตือนเร็ว ๆ นี้</b><span class="tag y">${rem.length}</span></div>${rem.slice(0, 4).map(r => `<div class="li"><span class="dot" style="background:${r.overdue ? "var(--bad)" : r.kind === "appt" ? "var(--lav-ink)" : "var(--sun-deep)"}"></span><div class="t"><b>${esc(r.title)}</b><small>${esc(r.sub)}</small></div></div>`).join("")}</div>` : ""}
     <div class="sec-h" style="margin-top:4px"><h2>กำลังจะถึง</h2><button data-act="goPlanner" data-sub="calendar">ดูทั้งหมด</button></div>
