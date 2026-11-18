@@ -169,6 +169,7 @@ function miloSVG(pose = "idle", opts = {}) {
     case "thumbs": aL = armDown("L"); aR = mTube("M172 126C188 118 196 104 198 90") + mGlove(198, 80, 0, "thumb"); fx = mStar(30, 70, .8); break;
     case "surprised": aR = mTube("M170 120C186 110 196 96 200 80") + mGlove(202, 70, 10, "open"); aL = mTube("M64 120C48 110 38 96 34 80") + mGlove(32, 70, -10, "open");
       fx = `<g fill="#FF6B57" stroke="${MINK}" stroke-width="2.4"><path d="M205 6h10l-2 30h-6z"/><circle cx="210" cy="46" r="5"/></g>`; break;
+    case "sign": aL = armDown("L"); aR = `<path d="M196 70L262 -6" stroke="${MINK}" stroke-width="9" stroke-linecap="round"/><path d="M196 70L262 -6" stroke="#C99560" stroke-width="5" stroke-linecap="round"/>` + mTube("M172 126C186 116 194 100 196 86") + mGlove(198, 78, 40, "fist", .95); break;
     case "sleep": aR = armDown("R"); aL = armDown("L"); fx = `<g font-family="Chewy,NST" fill="#4D5B86" stroke="${MINK}" stroke-width="1.2"><text class="c-z" x="182" y="40" font-size="30">z</text><text class="c-z" style="animation-delay:.8s" x="204" y="18" font-size="20">z</text></g>`; break;
     case "walk": aR = mTube("M174 128C188 136 196 146 200 156") + mGlove(204, 166, -40, "rest", .9); aL = mTube("M58 128C48 120 40 110 36 100") + mGlove(34, 90, 160, "rest", .9);
       legs = mTube("M98 206C94 222 86 232 78 240", 13) + mTube("M134 206C140 220 148 230 158 236", 13) + mFoot(72, 246, -1) + mFoot(164, 242, 1); break;

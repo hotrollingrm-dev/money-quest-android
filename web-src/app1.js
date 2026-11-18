@@ -220,6 +220,23 @@ function heroHTML(d) {
       ${coEv(d) ? `<span class="evtag">${art(EV_ART[coEv(d).k], 22)}${esc(coEv(d).th)} · ${esc(coEv(d).en)}</span>` : ""}${coSub(d) ? `<span class="evtag g">${art("swap", 22)}วันเปลี่ยนวันทำงาน (Substitution) ของ Team ${S.profile.team}</span>` : ""}
       ${ot ? `<span class="tps">${ot}</span>` : ""}</span></button>`;
 }
+/* the sign MILO holds on Home: what day, which shift, how long until the shift ends (live) */
+function signHTML() {
+  const now = new Date(), td = today(), dd = E.parse(td);
+  const dur = ms => { const m = Math.max(0, Math.ceil(ms / 6e4)), h = Math.floor(m / 60), r = m % 60; return h >= 24 ? `${Math.floor(h / 24)} วัน ${h % 24} ชม.` : h ? `${h} ชม. ${r} นาที` : `${r} นาที`; };
+  const yd = E.addDays(td, -1), yc = shiftOf(yd).c; let c = shiftOf(td).c, s = null, e = null;
+  if (isWork(yc) && crosses(yc) && now < atTime(td, times(yc)[1])) { c = yc; s = atTime(yd, times(yc)[0]); e = atTime(td, times(yc)[1]); }
+  else if (isWork(c)) { s = atTime(td, times(c)[0]); e = crosses(c) ? atTime(E.addDays(td, 1), times(c)[1]) : atTime(td, times(c)[1]); }
+  let main, sub = "", pct = null, cls = "";
+  if (s && now >= s && now < e) { main = `อีก <b>${dur(e - now)}</b>`; sub = `เลิกงาน ${times(c)[1]} น.`; pct = (now - s) / (e - s); cls = "work"; }
+  else if (s && now < s) { main = `เข้างานอีก <b>${dur(s - now)}</b>`; sub = `${times(c).join("–")} น.`; cls = "pre"; }
+  else { let nd = null; for (let i = s ? 1 : 0; i < 30; i++) { const x = E.addDays(td, i), xc = shiftOf(x).c; if (isWork(xc) && atTime(x, times(xc)[0]) > now) { nd = x; break; } }
+    const nc = nd ? shiftOf(nd).c : null; main = s ? "เลิกงานแล้ว พักผ่อนนะ" : "วันนี้ได้พัก!"; sub = nd ? `${SHN[nc]} ${nd === E.addDays(td, 1) ? "พรุ่งนี้" : dShort(nd)} ${times(nc)[0]} · อีก ${dur(atTime(nd, times(nc)[0]) - now)}` : ""; cls = "off"; }
+  return `<div class="ms-day"><span>${DOWL[dd.getDay()]}</span> ${dd.getDate()} ${dShort(td).split(" ").slice(1).join(" ")}</div>
+    <div class="ms-shift k${c}"><i>${c}</i>${SHN[c]}${isWork(c) ? ` <small>${times(c).join("–")}</small>` : ""}</div>
+    <div class="ms-main ${cls}">${main}</div>${pct != null ? `<div class="ms-bar"><i style="width:${(pct * 100).toFixed(1)}%"></i></div>` : ""}${sub ? `<div class="ms-sub">${sub}</div>` : ""}`;
+}
+setInterval(() => { const el = document.getElementById("miloSign"); if (el && !document.hidden) el.innerHTML = signHTML(); }, 30000);
 function sceneHTML(d) {
   const td = today(), sh = shiftOf(d); let c = sh.c;
   if (d === td) { const yc = shiftOf(E.addDays(td, -1)).c; if (isWork(yc) && crosses(yc) && new Date() < atTime(td, times(yc)[1])) c = yc; }
@@ -234,7 +251,9 @@ function sceneHTML(d) {
     else if (ap) { pose = "wave"; line = `วันนี้มีนัด: ${ap.title}`; }
     else if (coEv(td)) { pose = coEv(td).k === "party" ? "cheer" : "wave"; line = coEv(td).k === "party" ? "วันนี้งานปาร์ตี้ปีใหม่! สนุกนะ" : "วันนี้ทัวร์บริษัท เที่ยวให้สุด!"; }
   }
-  return `${catScene(c)}<button class="catbtn" data-act="catTap" aria-label="แตะ MILO">${miloSVG(pose)}</button><div class="bubble"><b>${esc(line)}</b></div>`;
+  // today: MILO holds up a sign (day, shift, live countdown); the speech bubble moves to the left
+  const isT = d === td;
+  return `${catScene(c)}<button class="catbtn ${isT ? "signing" : ""}" data-act="catTap" aria-label="แตะ MILO">${miloSVG(isT && !view.catTap && ["work", "sleep", "wave", "idle"].includes(pose) ? "sign" : pose)}</button>${isT ? `<div class="msign" id="miloSign">${signHTML()}</div><div class="bubble left"><b>${esc(line)}</b></div>` : `<div class="bubble"><b>${esc(line)}</b></div>`}`;
 }
 const dial = { pos: null, raf: 0, v: 0, drag: null, lastInt: null };
 function dialHTML() {
