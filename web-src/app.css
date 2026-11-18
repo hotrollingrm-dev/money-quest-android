@@ -811,3 +811,4 @@ button:active,.btn:active,.card[data-act]:active{transform:scale(.97)}
 .fd{width:8px;height:8px;border-radius:50%}.fd.in{background:#2fa35c}.fd.out{background:#e0574a}
 .flow-cats{margin-top:14px;display:grid;gap:8px}.fc{display:grid;grid-template-columns:96px 1fr auto;align-items:center;gap:8px;font-size:13px}
 .fc span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fc i{height:6px;border-radius:999px;background:var(--line,#eee);overflow:hidden}.fc i b{display:block;height:100%;background:#e0574a;opacity:.75}.fc em{font-style:normal;font-variant-numeric:tabular-nums;color:var(--ink-2,#555)}
+.flowc{margin-bottom:14px}

@@ -156,14 +156,14 @@ function mSlips() {
       ${fl.length ? `<div class="warnbox" style="margin-top:10px;padding:8px 12px;font-size:13px">ตรวจ: ${fl.join(" · ")}</div>` : ""}
       <div class="row" style="margin-top:12px;gap:8px;flex-wrap:nowrap"><button class="btn sm ghost" style="flex:1" data-act="slipEdit" data-id="${esc(s.id)}">แก้</button><button class="btn sm ghost" data-act="slipIgnore" data-id="${esc(s.id)}">ข้าม</button><button class="btn sm primary" style="flex:1.4" data-act="slipOk" data-id="${esc(s.id)}">ยืนยัน</button></div></div>`; };
   const clean = pend.filter(s => !flagsOf(s).length);
-  return `<div class="card"><div class="between"><div><b>นำเข้าสลิปจากมือถือ</b><div class="sub">เปิดอัลบั้มของแอปธนาคาร → เลือกทั้งหมด · อ่านในเครื่อง ไม่ส่งรูปออกไป</div></div></div>
+  return `<div class="sec-h" style="margin-top:0"><h2>รับเข้า vs จ่ายออก</h2><div class="row" style="gap:4px"><button class="icon-btn" data-act="slipM" data-n="-1" aria-label="เดือนก่อน">${I.l}</button><b style="font-size:14px">${mShort(view3.slipMonth)}</b><button class="icon-btn" data-act="slipM" data-n="1" aria-label="เดือนถัดไป">${I.r}</button></div></div>
+    ${flowCard(view3.slipMonth)}
+    <div class="card"><div class="between"><div><b>นำเข้าสลิปจากมือถือ</b><div class="sub">เปิดอัลบั้มของแอปธนาคาร → เลือกทั้งหมด · อ่านในเครื่อง ไม่ส่งรูปออกไป</div></div></div>
       <label class="btn primary wide" style="margin-top:12px">${I.file} เลือกสลิป (ได้หลายใบ)<input type="file" accept="image/*" multiple data-slips hidden ${view3.slipBusy ? "disabled" : ""}></label>
       ${view3.slipBusy ? `<div class="bar" style="margin-top:12px"><i style="width:${view3.slipTot ? view3.slipProg / view3.slipTot * 100 : 5}%"></i></div>` : ""}
       ${view3.slipMsg ? `<p class="sub" style="margin-top:8px">${esc(view3.slipMsg)}</p>` : ""}
       <p class="hint" style="margin-top:8px;font-size:12px;color:var(--ink-3)">ทดสอบแล้วกับสลิป ออมสิน (MyMo) · ทีทีบี · กรุงศรี — ธนาคารอื่นอ่านได้แต่อาจต้องตรวจมากขึ้น</p></div>
     ${pend.length ? `<div class="sec-h"><h2>รอตรวจ ${pend.length}</h2>${clean.length > 1 ? `<button data-act="slipOkAll">ยืนยัน ${clean.length} รายการที่ไม่มีจุดตรวจ</button>` : ""}</div><div class="stack">${pend.map(card).join("")}</div>` : ""}
-    <div class="sec-h"><h2>รับเข้า vs จ่ายออก</h2><div class="row" style="gap:4px"><button class="icon-btn" data-act="slipM" data-n="-1" aria-label="เดือนก่อน">${I.l}</button><b style="font-size:14px">${mShort(view3.slipMonth)}</b><button class="icon-btn" data-act="slipM" data-n="1" aria-label="เดือนถัดไป">${I.r}</button></div></div>
-    ${flowCard(view3.slipMonth)}
     <div class="sec-h"><h2>แยกตามบัญชี</h2></div>
     ${S.owner.accounts.length ? `<div class="stack">${(sum.length ? sum : S.owner.accounts.map(a => ({ acc: a, out: 0, inn: 0, xin: 0, xout: 0, n: 0 }))).map(r => { const b = BANKC(r.acc.bank); return `<button class="card" style="text-align:left;width:100%;border-left:6px solid ${b.color}" data-act="acctEdit" data-id="${r.acc.id}">
         <div class="between"><b>${b.name} <span class="muted" style="font-weight:500">${esc(r.acc.masks[0] || "")}</span></b>${r.acc.goalId ? `<span class="tag g">บัญชีเงินเก็บ</span>` : ""}</div>${r.acc.label ? `<div class="sub">${esc(r.acc.label)}</div>` : ""}
