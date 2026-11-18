@@ -259,8 +259,10 @@ function drawDial() {
     const x = g.w / 2 + g.R * Math.sin(th), y = g.cy - g.R * Math.cos(th), a = Math.abs(off);
     const sc = Math.max(.62, 1 - a * .09), op = Math.max(0, 1 - a * .17);
     const c = shiftOf(d).c, on = a < .5;
-    html += `<button class="dd ${on ? "on" : ""} ${k === 0 ? "now" : ""} ${HOL[d] ? "hol" : ""}" data-act="dialGo" data-d="${d}" tabindex="-1" style="transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px) rotate(${(th * 180 / Math.PI).toFixed(2)}deg) scale(${sc.toFixed(3)});opacity:${op.toFixed(2)}" aria-label="${dLong(d)} ${SHN[c]}">
-      <span class="dw">${DOW[dd.getDay()]}</span><span class="dn">${dd.getDate()}${evBadge(d, 18)}</span><span class="dl k${c}">${c}</span><span class="dab">${otherTeams().map(t => { const x = rosterCode(t, d).c; return `<span>${t}<b class="k${x} ${coSub(d, t) ? "sub" : ""}">${x}</b></span>`; }).join("")}</span></button>`;
+    const ev = coEv(d), sk = Math.max(-14, Math.min(14, -(dial.v || 0) * 700)), near = a < 1.5;
+    const deco = ev && ev.k === "party" ? partyHat() : ev && ev.k === "tour" ? tourFlag() : "";
+    html += `<button class="dd ${on ? "on" : ""} ${near ? "near" : ""} ${k === 0 ? "now" : ""} ${HOL[d] ? "hol" : ""} ${ev ? "ev-" + ev.k : ""} ${coSub(d) ? "subd" : ""}" data-act="dialGo" data-d="${d}" tabindex="-1" style="transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px) rotate(${(th * 180 / Math.PI).toFixed(2)}deg) scale(${sc.toFixed(3)}) skewX(${sk.toFixed(1)}deg);opacity:${op.toFixed(2)}" aria-label="${dLong(d)} ${SHN[c]}${ev ? " · " + ev.th : ""}">
+      <span class="dw">${k === 0 ? "วันนี้" : DOW[dd.getDay()]}</span><span class="dn k${c}">${deco}<b>${dd.getDate()}</b>${ev && ev.k === "party" ? "" : coSub(d) ? `<span class="evb">${art("swap", 18)}</span>` : ""}</span><span class="dl k${c}">${SHS[c]}</span>${on ? `<span class="dab">${otherTeams().map(t => { const x = rosterCode(t, d).c; return `<span>${t}<b class="k${x} ${coSub(d, t) ? "sub" : ""}">${x}</b></span>`; }).join("")}</span>` : ""}</button>`;
   }
   face.innerHTML = html;
   const cur = E.addDays(td, base), lab = $("#dialLabel");
@@ -305,13 +307,17 @@ document.addEventListener("click", e => {
     const hd = $("#dayHead"); if (hd) hd.textContent = d === today() ? `วันนี้ · ${dShort(d)}` : dLong(d).replace(/ \d{4}$/, "");
     $("#dialWrap").querySelectorAll(".mc.sel").forEach(x => x.classList.remove("sel")); b.classList.add("sel"); }
 }, true);
+const partyHat = () => `<svg class="phat" viewBox="0 0 40 46" aria-hidden="true"><path d="M20 2L33 38H7z" fill="#FF6FA5" stroke="#1D3B12" stroke-width="2.4" stroke-linejoin="round"/><path d="M14 18l13 5M11 27l19 6" stroke="#FFE24D" stroke-width="4" stroke-linecap="round"/><path d="M8 37q12 6 24 0" fill="none" stroke="#1D3B12" stroke-width="2.4"/><circle cx="20" cy="4" r="5" fill="#7FE3F2" stroke="#1D3B12" stroke-width="2.2"/></svg><i class="conf c1"></i><i class="conf c2"></i><i class="conf c3"></i><i class="conf c4"></i>`;
+const tourFlag = () => `<svg class="tflag" viewBox="0 0 30 40" aria-hidden="true"><path d="M4 38V4" stroke="#1D3B12" stroke-width="3" stroke-linecap="round"/><path d="M5 5h20l-6 7 6 7H5z" fill="#4C86E3" stroke="#1D3B12" stroke-width="2.2" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.6" fill="#fff"/></svg>`;
 function dialSettle() {
+  const on = document.querySelector(".dd.on"); if (on) { on.classList.remove("pop"); void on.offsetWidth; on.classList.add("pop"); }
   const td = today(), d = E.addDays(td, Math.round(dial.pos));
   if (view.homeDay !== d) { const was = view.homeDay || td; view.homeDay = d; const hb = $("#heroBox"); if (hb) hb.innerHTML = heroHTML(d);
     const sb = $("#sceneBox"); if (sb && shiftOf(was).c !== shiftOf(d).c) { sb.innerHTML = sceneHTML(d); } else if (sb) { const bb = sb.querySelector(".bubble b"); if (bb) bb.textContent = (CAT_LINES[shiftOf(d).c] || CAT_LINES.H)[E.parse(d).getDate() % (CAT_LINES[shiftOf(d).c] || CAT_LINES.H).length]; }
     const hd = $("#dayHead"); if (hd) hd.textContent = d === td ? `วันนี้ · ${dShort(d)}` : dLong(d).replace(/ \d{4}$/, ""); }
 }
 function dialAnimateTo(target) {
+  dial.v = 0;
   cancelAnimationFrame(dial.raf); const from = dial.pos, t0 = performance.now(), dur = Math.min(700, 220 + Math.abs(target - from) * 60);
   const step = t => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); dial.pos = from + (target - from) * e; drawDial(); if (k < 1) dial.raf = requestAnimationFrame(step); else { dial.pos = target; drawDial(); dialSettle(); } };
   dial.raf = requestAnimationFrame(step);
