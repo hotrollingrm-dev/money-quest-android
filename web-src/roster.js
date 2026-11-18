@@ -22,3 +22,11 @@ const HOL={
  "2027-12-05":["วันพ่อแห่งชาติ","Father's Day"],"2027-12-06":["ชดเชยวันพ่อแห่งชาติ","Father's Day (observed)"],
  "2027-12-10":["วันรัฐธรรมนูญ","Constitution Day"],"2027-12-31":["วันสิ้นปี","New Year's Eve"]
 };
+
+/* Company calendar events marked on "Calendar 2026_3G2S Rev.01" (legend: ◇ Company Tour, ⬡ New Year Party, green = substitution of working days) */
+const CO_EV = {
+  "2026-09-11": { k: "tour", th: "ทัวร์บริษัท", en: "Company Tour" },
+  "2026-09-12": { k: "tour", th: "ทัวร์บริษัท", en: "Company Tour" },
+  "2026-12-18": { k: "party", th: "งานปาร์ตี้ปีใหม่", en: "New Year Party" }
+};
+const CO_SUB = { "2026-09-08": ["A"], "2026-09-10": ["A"], "2026-12-13": ["A"], "2026-12-18": ["A"] };

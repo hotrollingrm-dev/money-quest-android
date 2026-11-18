@@ -718,3 +718,13 @@ button:active,.btn:active,.card[data-act]:active{transform:scale(.97)}
 @keyframes leaves{0%{transform:translate(380px,150px) rotate(0)}100%{transform:translate(-60px,420px) rotate(540deg)}}
 #hiker .cat{overflow:visible}
 @media (prefers-reduced-motion:reduce){#main,.st-in,.pbar i,.bar i,.stackbar i,.fcb i,.milo-pop,.sf-line,.sf-box,#worldSvg *{animation:none!important}}
+
+/* company calendar events */
+.evb{position:absolute;top:-6px;right:-8px;display:flex;gap:1px;pointer-events:none}
+.evb .stk{box-shadow:0 0 0 2px #fff,0 2px 4px rgba(60,80,10,.25)}
+.dd .dn,.mc,.cc{position:relative}
+.mc .evb{top:0;right:0}.cc .evb{top:2px;right:2px}
+.dl.sub,.dab b.sub{outline:2px dashed #3F8A2A;outline-offset:1px;background:linear-gradient(#A6E08A,#5DAA45)!important;color:#fff!important}
+.evtag{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:4px 10px 4px 4px;border-radius:999px;background:#FFE3EC;color:#9A2F58;font-size:12.5px;font-weight:700;align-self:flex-start}
+.evtag.g{background:#E4F4D8;color:#3F7F2A}
+.evline{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13.5px}.evline small{color:var(--ink-3)}

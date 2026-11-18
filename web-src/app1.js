@@ -49,6 +49,11 @@ const SHN = { D: "กะเช้า", N: "กะดึก", H: "วันหย
 const SHS = { D: "เช้า", N: "ดึก", H: "หยุด", S: "ปิดรง." };
 /** The two other teams of the 3G2S roster (shown small; the user's own team stays the main one). */
 const otherTeams = () => S.shift.mode === "roster" ? ["A", "B", "C"].filter(t => t !== (S.profile.team || "C")) : [];
+/* company events + substitution days (from the official calendar) */
+const coEv = d => CO_EV[d] || null;
+const coSub = (d, t) => (CO_SUB[d] || []).includes(t || S.profile.team || "C");
+const EV_ART = { party: "party", tour: "bus" };
+const evBadge = (d, size = 20) => { const e = coEv(d), s = coSub(d); return e || s ? `<span class="evb">${e ? art(EV_ART[e.k] || "star", size) : ""}${s ? art("swap", size) : ""}</span>` : ""; };
 const teamChips = d => { const o = otherTeams(); return o.length ? `<span class="tcs">${o.map(t => { const c = rosterCode(t, d).c; return `<i class="tc k${c}" title="Team ${t} ${SHN[c]}">${t}</i>`; }).join("")}</span>` : ""; };
 const teamLine = d => otherTeams().map(t => { const c = rosterCode(t, d).c; return `<span class="tl"><i class="tc k${c}">${t}</i>Team ${t} <b>${SHS[c]}</b>${isWork(c) ? ` <span class="muted">${times(c)[0]}</span>` : ""}</span>`; }).join("");
 const isWork = c => c === "D" || c === "N";
@@ -212,6 +217,7 @@ function heroHTML(d) {
     <span class="sc"><b>${SHN[c]}${sh.sw && c === sh.c ? " (สลับกะ)" : ""} · Team ${S.profile.team || "C"}</b>
       <small>${isToday ? "" : dLong(d).replace(/ \d{4}$/, "") + " · "}${isWork(c) ? `${times(c).join(" – ")} · ${fmt(shiftHours(c), 2).replace(/\.?0+$/, "")} ชม.` : HOL[d] ? esc(HOL[d][0]) : "พักผ่อนให้เต็มที่"}</small>
       ${status || nextLine ? `<small class="st">${status ? esc(status) : ""}${status && nextLine ? " · " : ""}${nextLine}</small>` : ""}
+      ${coEv(d) ? `<span class="evtag">${art(EV_ART[coEv(d).k], 22)}${esc(coEv(d).th)} · ${esc(coEv(d).en)}</span>` : ""}${coSub(d) ? `<span class="evtag g">${art("swap", 22)}วันเปลี่ยนวันทำงาน (Substitution) ของ Team ${S.profile.team}</span>` : ""}
       ${ot ? `<span class="tps">${ot}</span>` : ""}</span></button>`;
 }
 function sceneHTML(d) {
@@ -226,6 +232,7 @@ function sceneHTML(d) {
     else if (over) { pose = "think"; line = `${over.debt.name} เลยกำหนดจ่ายแล้ว`; }
     else if (soon) { pose = "think"; line = `${soon.due === td ? "วันนี้" : "พรุ่งนี้"}ครบจ่าย ${soon.debt.name}`; }
     else if (ap) { pose = "wave"; line = `วันนี้มีนัด: ${ap.title}`; }
+    else if (coEv(td)) { pose = coEv(td).k === "party" ? "cheer" : "wave"; line = coEv(td).k === "party" ? "วันนี้งานปาร์ตี้ปีใหม่! สนุกนะ" : "วันนี้ทัวร์บริษัท เที่ยวให้สุด!"; }
   }
   return `${catScene(c)}<button class="catbtn" data-act="catTap" aria-label="แตะ MILO">${miloSVG(pose)}</button><div class="bubble"><b>${esc(line)}</b></div>`;
 }
@@ -253,7 +260,7 @@ function drawDial() {
     const sc = Math.max(.62, 1 - a * .09), op = Math.max(0, 1 - a * .17);
     const c = shiftOf(d).c, on = a < .5;
     html += `<button class="dd ${on ? "on" : ""} ${k === 0 ? "now" : ""} ${HOL[d] ? "hol" : ""}" data-act="dialGo" data-d="${d}" tabindex="-1" style="transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px) rotate(${(th * 180 / Math.PI).toFixed(2)}deg) scale(${sc.toFixed(3)});opacity:${op.toFixed(2)}" aria-label="${dLong(d)} ${SHN[c]}">
-      <span class="dw">${DOW[dd.getDay()]}</span><span class="dn">${dd.getDate()}</span><span class="dl k${c}">${c}</span><span class="dab">${otherTeams().map(t => { const x = rosterCode(t, d).c; return `<span>${t}<b class="k${x}">${x}</b></span>`; }).join("")}</span></button>`;
+      <span class="dw">${DOW[dd.getDay()]}</span><span class="dn">${dd.getDate()}${evBadge(d, 18)}</span><span class="dl k${c}">${c}</span><span class="dab">${otherTeams().map(t => { const x = rosterCode(t, d).c; return `<span>${t}<b class="k${x} ${coSub(d, t) ? "sub" : ""}">${x}</b></span>`; }).join("")}</span></button>`;
   }
   face.innerHTML = html;
   const cur = E.addDays(td, base), lab = $("#dialLabel");
@@ -270,7 +277,7 @@ function monthHTML() {
   for (let dd = 1; dd <= dim; dd++) {
     const d = `${mk}-${String(dd).padStart(2, "0")}`, c = shiftOf(d).c;
     cells.push(`<button class="mc ${d === td ? "now" : ""} ${d === sel ? "sel" : ""} ${d < td ? "past" : ""} ${HOL[d] ? "hol" : ""}" data-act="monthPick" data-d="${d}" aria-label="${dLong(d)} ${SHN[c]}">
-      <span class="n">${dd}</span><span class="dl k${c}">${c}</span><span class="dab">${otherTeams().map(t => { const x = rosterCode(t, d).c; return `<span>${t}<b class="k${x}">${x}</b></span>`; }).join("")}</span></button>`);
+      <span class="n">${dd}</span>${evBadge(d, 16)}<span class="dl k${c} ${coSub(d) ? "sub" : ""}">${c}</span><span class="dab">${otherTeams().map(t => { const x = rosterCode(t, d).c; return `<span>${t}<b class="k${x} ${coSub(d, t) ? "sub" : ""}">${x}</b></span>`; }).join("")}</span></button>`);
   }
   const cnt = { D: 0, N: 0, H: 0 }; for (let dd = 1; dd <= dim; dd++) { const c = shiftOf(`${mk}-${String(dd).padStart(2, "0")}`).c; cnt[c === "S" ? "H" : c]++; }
   return `<div class="card monthv">
@@ -278,7 +285,8 @@ function monthHTML() {
       <span class="row" style="gap:8px"><button class="icon-btn" data-act="monthNav" data-n="-1" aria-label="เดือนก่อน">${I.l}</button><b style="font-size:17px;min-width:118px;text-align:center">${mLabel(mk)}</b><button class="icon-btn" data-act="monthNav" data-n="1" aria-label="เดือนถัดไป">${I.r}</button></span></div>
     <div class="mgridh">${["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"].map(x => `<span>${x}</span>`).join("")}</div>
     <div class="mgridd">${cells.join("")}</div>
-    <div class="mleg"><span><i class="dl kD">D</i>เช้า ${cnt.D}</span><span><i class="dl kN">N</i>ดึก ${cnt.N}</span><span><i class="dl kH">H</i>หยุด ${cnt.H}</span><span class="muted">Team ${S.profile.team || "C"}</span></div></div>`;
+    <div class="mleg"><span><i class="dl kD">D</i>เช้า ${cnt.D}</span><span><i class="dl kN">N</i>ดึก ${cnt.N}</span><span><i class="dl kH">H</i>หยุด ${cnt.H}</span><span class="muted">Team ${S.profile.team || "C"}</span>${Object.keys(CO_EV).some(k => k.startsWith(mk)) || Object.keys(CO_SUB).some(k => k.startsWith(mk)) ? `<span>${art("party", 18)}ปาร์ตี้ปีใหม่</span><span>${art("bus", 18)}ทัวร์บริษัท</span><span><i class="dl kD sub">D</i>เปลี่ยนวันทำงาน</span>` : ""}</div>
+    ${Object.entries(CO_EV).filter(([k]) => k.startsWith(mk)).map(([k, e]) => `<div class="evline">${art(EV_ART[e.k], 26)}<b>${dShort(k)}</b> ${esc(e.th)} <small>(${e.en})</small></div>`).join("")}</div>`;
 }
 function setMonthMode(on, push = true) {
   view.homeMonth = on; if (!on) view.homeMonthKey = null;
@@ -376,6 +384,7 @@ function pHome() {
   for (const r of E.debtSchedule(S, mk, td)) if (r.status !== "paid" && r.status !== "closed") up.push({ d: r.due, t: "", title: `ผ่อน ${r.debt.name}`, sub: baht(r.planned), ic: "card", hue: "red", act: `data-act="goMoney" data-sub="debt"`, bad: r.status === "overdue" });
   for (const f of E.expenseMonth(S, mk).fixed) if (f.status !== "paid" && f.due >= td) up.push({ d: f.due, t: "", title: f.item.name, sub: baht(f.planned - f.paid), ic: "receipt", hue: "grn", act: `data-act="goMoney" data-sub="expense"` });
   for (const t of S.planner.todos) if (!t.done && t.due) up.push({ d: t.due, t: "", title: t.title, sub: "To-do", ic: "list", hue: "tea", act: `data-act="goPlanner" data-sub="todo"` });
+  for (const [d, e] of Object.entries(CO_EV)) if (d >= td && d <= E.addDays(td, 60)) up.push({ d, t: "", title: e.th, sub: `ปฏิทินบริษัท · ${e.en}`, ic: EV_ART[e.k], hue: e.k === "party" ? "pink" : "blu", act: `data-act="planDay" data-d="${d}"` });
   up.sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t));
   const qc = up.slice(0, 8).map(u => `<button class="apc h-${u.hue}" ${u.act}><span class="apd"><b>${u.d === td ? "วันนี้" : dShort(u.d)}</b><small>${u.t || "ทั้งวัน"}</small></span><span class="apb">${art(u.ic, 34)}<b>${esc(u.title)}</b></span><span class="apf">${u.bad ? "เลยกำหนด!" : esc(u.sub || "")}</span></button>`).join("");
   const lv = E.level(xp), next = jp.next;

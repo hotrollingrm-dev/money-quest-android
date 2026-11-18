@@ -249,13 +249,15 @@ function mReport() {
 
 /* ───────── PLANNER ───────── */
 const PTABS = [["calendar", "ปฏิทิน", "cal"], ["shift", "ตารางกะ", "factory"], ["appts", "นัดหมาย", "pin"], ["todo", "To-do", "list"]];
-const EV_COL = { shift: "", appt: "var(--lav-ink)", birthday: "var(--sun-deep)", debt: "var(--bad)", bill: "var(--cocoa)", todo: "var(--olive)", payday: "var(--good)" };
+const EV_COL = { company: "#E2628F", sub: "#78B536", shift: "", appt: "var(--lav-ink)", birthday: "var(--sun-deep)", debt: "var(--bad)", bill: "var(--cocoa)", todo: "var(--olive)", payday: "var(--good)" };
 function dayEvents(d) {
   const ev = [], mk = E.monthKey(d);
   for (const a of S.planner.appts) if (E.apptOccurrences(a, d, d).length) ev.push({ k: a.type === "วันเกิด" ? "birthday" : "appt", t: a.time || "", title: a.title, sub: [a.place, a.type].filter(Boolean).join(" · "), act: `data-act="editAppt" data-id="${a.id}"` });
   for (const r of E.debtSchedule(S, mk, today())) if (r.due === d && r.status !== "closed") ev.push({ k: "debt", t: "", title: `ผ่อน ${r.debt.name}`, sub: `${baht(r.planned)} · ${r.status === "paid" ? "จ่ายแล้ว" : r.status === "overdue" ? "เลยกำหนด" : "ครบกำหนด"}`, act: `data-act="goMoney" data-sub="debt"` });
   for (const f of E.expenseMonth(S, mk).fixed) if (f.due === d) ev.push({ k: "bill", t: "", title: f.item.name, sub: `${baht(f.planned)} · ${f.status === "paid" ? "จ่ายแล้ว" : "ยังไม่จ่าย"}`, act: `data-act="goMoney" data-sub="expense"` });
   for (const t of S.planner.todos) if (t.due === d) ev.push({ k: "todo", t: "", title: t.title, sub: t.done ? "เสร็จแล้ว" : "To-do", act: `data-act="todo" data-id="${t.id}"` });
+  if (coEv(d)) ev.unshift({ k: "company", t: "", title: coEv(d).th, sub: `ปฏิทินบริษัท UACJ · ${coEv(d).en}`, act: "" });
+  if (coSub(d)) ev.unshift({ k: "sub", t: "", title: "เปลี่ยนวันทำงาน (Substitution of working days)", sub: `Team ${S.profile.team} · ตามปฏิทินบริษัท`, act: "" });
   if (E.nextPayday(S, E.addDays(d, -1)) === d && S.pay.salary) ev.push({ k: "payday", t: "", title: "เงินเดือนออก", sub: "", act: `data-act="goMoney" data-sub="overview"` });
   return ev.sort((a, b) => (a.t || "99").localeCompare(b.t || "99"));
 }
@@ -280,7 +282,7 @@ function plCalendar() {
   if (vw === "month") {
     const first = E.parse(mk + "-01"), lead = (first.getDay() + 6) % 7, start = E.addDays(mk + "-01", -lead), total = Math.ceil((lead + E.daysInMonth(mk)) / 7) * 7;
     let cells = ""; for (let i = 0; i < total; i++) { const d = E.addDays(start, i), sh = shiftOf(d), ev = dayEvents(d);
-      cells += `<button class="cc ${E.monthKey(d) !== mk ? "out" : ""} ${d === td ? "today" : ""} ${d === sel ? "sel" : ""} ${HOL[d] ? "hol" : ""}" data-act="calSel" data-d="${d}" aria-label="${dLong(d)} ${SHN[sh.c]} ${ev.length} รายการ"><span class="n">${E.parse(d).getDate()}</span><span class="sh" style="background:var(--${sh.c})${sh.sw ? ";outline:1.5px dashed #1D1A16;outline-offset:1px" : ""}"></span>${teamChips(d)}<span class="ev">${ev.slice(0, 3).map(e => `<i style="background:${EV_COL[e.k]}"></i>`).join("")}</span></button>`; }
+      cells += `<button class="cc ${E.monthKey(d) !== mk ? "out" : ""} ${d === td ? "today" : ""} ${d === sel ? "sel" : ""} ${HOL[d] ? "hol" : ""}" data-act="calSel" data-d="${d}" aria-label="${dLong(d)} ${SHN[sh.c]} ${ev.length} รายการ"><span class="n">${E.parse(d).getDate()}</span>${evBadge(d, 14)}<span class="sh" style="background:var(--${sh.c})${sh.sw ? ";outline:1.5px dashed #1D1A16;outline-offset:1px" : ""}"></span>${teamChips(d)}<span class="ev">${ev.slice(0, 3).map(e => `<i style="background:${EV_COL[e.k]}"></i>`).join("")}</span></button>`; }
     body = `<div class="cal"><div class="between" style="margin-bottom:10px"><button class="icon-btn" style="background:var(--surface)" data-act="calM" data-n="-1" aria-label="เดือนก่อน">${I.l}</button><b style="font-size:17px">${mLabel(mk)}</b><button class="icon-btn" style="background:var(--surface)" data-act="calM" data-n="1" aria-label="เดือนถัดไป">${I.r}</button></div>
       <div class="dow">${["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"].map(x => `<span>${x}</span>`).join("")}</div><div class="cells">${cells}</div>
       <div class="row" style="gap:6px 14px;font-size:12px;color:var(--ink-2);margin-top:10px">${[["D", "เช้า"], ["N", "ดึก"], ["H", "หยุด"]].map(([k, l]) => `<span class="row" style="gap:5px"><span class="dot" style="width:14px;height:5px;border-radius:3px;background:var(--${k})"></span>${l}</span>`).join("")}${[["appt", "นัดหมาย"], ["birthday", "วันเกิด"], ["debt", "หนี้"], ["bill", "บิล"], ["todo", "To-do"], ["payday", "เงินเดือน"]].map(([k, l]) => `<span class="row" style="gap:5px"><span class="dot" style="background:${EV_COL[k]}"></span>${l}</span>`).join("")}</div></div>
@@ -297,7 +299,7 @@ function plCalendar() {
 const PRESETS = [["UACJ 4-2-4-2", "DDDDHHNNNNHH"], ["4 เช้า 2 หยุด 4 ดึก 2 หยุด", "DDDDHHNNNNHH"], ["2-2-2", "DDNNHH"], ["3 เช้า 3 ดึก 3 หยุด", "DDDNNNHHH"], ["จันทร์–ศุกร์", "DDDDDHH"]];
 function plShift() {
   const sh = S.shift, td = today();
-  const next = Array.from({ length: 14 }, (_, i) => { const d = E.addDays(td, i), c = shiftOf(d).c; return `<div style="text-align:center;font-size:11px;color:var(--ink-3)">${DOW[E.parse(d).getDay()]}<div style="height:30px;border-radius:9px;margin-top:4px;background:var(--${c});display:grid;place-items:center;color:${c === "N" ? "#fff" : "var(--ink)"};font-weight:700;font-size:12px">${E.parse(d).getDate()}</div>${teamChips(d)}</div>`; }).join("");
+  const next = Array.from({ length: 14 }, (_, i) => { const d = E.addDays(td, i), c = shiftOf(d).c; return `<div style="text-align:center;font-size:11px;color:var(--ink-3)">${DOW[E.parse(d).getDay()]}<div style="height:30px;border-radius:9px;margin-top:4px;background:var(--${c});display:grid;place-items:center;color:${c === "N" ? "#fff" : "var(--ink)"};font-weight:700;font-size:12px;position:relative">${E.parse(d).getDate()}${evBadge(d, 14)}</div>${teamChips(d)}</div>`; }).join("");
   const mkN = E.addMonths(E.monthKey(td), 1); let nD = 0, nN = 0, nH = 0; for (let i = 1; i <= E.daysInMonth(mkN); i++) { const c = shiftOf(`${mkN}-${E.pad(i)}`).c; if (c === "D") nD++; else if (c === "N") nN++; else nH++; }
   return `<div class="mgrid"><div class="stack">
     <div class="card"><b>14 วันข้างหน้า</b><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px">${next}</div>
