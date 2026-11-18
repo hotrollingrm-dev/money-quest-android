@@ -99,43 +99,98 @@ function art(k, size = 42, cls = "") {
 /* just the glyph (for nav), tinted by currentColor-free white on a hue disc */
 const GOAL_ICONS = ["target", "camera", "car", "phone", "laptop", "plane", "house", "scooter", "guitar", "buoy", "ring", "grad", "gift", "piggy", "heart", "star"];
 
-/* ── the mascot: a chubby brown British Shorthair ── */
-function catSVG(mood = "H", opts = {}) {
-  const sleepy = mood === "N", cheer = mood === "cheer", work = mood === "D";
-  const eyes = sleepy
-    ? `<path d="M74 104q10 7 20 0M126 104q10 7 20 0" fill="none" stroke="#3A2414" stroke-width="4" stroke-linecap="round"/>`
-    : cheer ? `<path d="M73 106q11-12 22 0M125 106q11-12 22 0" fill="none" stroke="#3A2414" stroke-width="4.5" stroke-linecap="round"/>`
-    : `<g class="c-eyes"><ellipse cx="84" cy="102" rx="13" ry="14" fill="url(#cEye)"/><ellipse cx="136" cy="102" rx="13" ry="14" fill="url(#cEye)"/>
-       <g class="c-pup"><ellipse cx="84" cy="103" rx="6" ry="9.5" fill="#22140A"/><ellipse cx="136" cy="103" rx="6" ry="9.5" fill="#22140A"/>
-       <circle cx="80" cy="97" r="3.6" fill="#fff"/><circle cx="132" cy="97" r="3.6" fill="#fff"/><circle cx="87" cy="108" r="1.6" fill="#fff" opacity=".8"/><circle cx="139" cy="108" r="1.6" fill="#fff" opacity=".8"/></g>
-       <g class="c-lid"><ellipse cx="84" cy="102" rx="14.5" ry="15.5" fill="url(#cFur)"/><ellipse cx="136" cy="102" rx="14.5" ry="15.5" fill="url(#cFur)"/><path d="M71 104q13 8 26 0M123 104q13 8 26 0" fill="none" stroke="#3A2414" stroke-width="3" stroke-linecap="round"/></g></g>`;
-  const hat = work ? `<g class="c-hat"><path d="M62 62q48-46 96 0z" fill="url(#cHat)"/><rect x="54" y="58" width="112" height="11" rx="5.5" fill="#F2B21B"/><rect x="104" y="22" width="12" height="38" rx="5" fill="#FFE683" opacity=".9"/><ellipse cx="88" cy="40" rx="14" ry="6" fill="#fff" opacity=".45" transform="rotate(-25 88 40)"/></g>`
-    : sleepy ? `<g class="c-hat"><path d="M66 60q34-44 86-6l-6 8q-40-20-72 6z" fill="url(#cCap)"/><path d="M150 54q22 4 30 30" fill="none" stroke="url(#cCap)" stroke-width="12" stroke-linecap="round"/><circle cx="182" cy="88" r="9" fill="#fff"/><path d="M64 62q44-22 92-4" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/></g>`
-    : `<g class="c-hat"><g transform="translate(150 50) rotate(18)"><ellipse cx="0" cy="-9" rx="6" ry="9" fill="#FFB8D0"/><ellipse cx="9" cy="0" rx="9" ry="6" fill="#FFB8D0"/><ellipse cx="0" cy="9" rx="6" ry="9" fill="#FFB8D0"/><ellipse cx="-9" cy="0" rx="9" ry="6" fill="#FFB8D0"/><circle r="5.5" fill="#FFD25A"/></g></g>`;
-  const paws = cheer
-    ? `<g class="c-armL"><ellipse cx="52" cy="128" rx="14" ry="20" fill="url(#cFur)" transform="rotate(35 52 128)"/><ellipse cx="44" cy="112" rx="11" ry="9" fill="url(#cMuz)"/></g><g class="c-armR"><ellipse cx="168" cy="128" rx="14" ry="20" fill="url(#cFur)" transform="rotate(-35 168 128)"/><ellipse cx="176" cy="112" rx="11" ry="9" fill="url(#cMuz)"/></g>`
-    : `<ellipse cx="88" cy="196" rx="17" ry="11" fill="url(#cMuz)"/><ellipse cx="132" cy="196" rx="17" ry="11" fill="url(#cMuz)"/><path d="M82 192v7M88 191v8M94 192v7M126 192v7M132 191v8M138 192v7" stroke="#C9A47A" stroke-width="2" stroke-linecap="round"/>`;
-  return `<svg class="cat m-${mood} ${opts.cls || ""}" viewBox="0 0 220 220" aria-hidden="true">
-    <ellipse cx="110" cy="208" rx="70" ry="9" fill="url(#cShadow)"/>
-    <g class="c-tail"><path d="M162 186c28 4 42-14 34-32-5-10-15-9-17-2" fill="none" stroke="url(#cFur)" stroke-width="20" stroke-linecap="round"/><path d="M178 160c4-3 10-2 12 3" fill="none" stroke="#6B4429" stroke-width="3" stroke-linecap="round" opacity=".5"/></g>
-    <g class="c-body"><ellipse cx="110" cy="164" rx="70" ry="48" fill="url(#cFur)"/><ellipse cx="110" cy="172" rx="42" ry="34" fill="url(#cMuz)" opacity=".92"/>
-      <path d="M58 150q6-6 12 0M150 150q6-6 12 0" fill="none" stroke="#6B4429" stroke-width="3" stroke-linecap="round" opacity=".35"/>${paws}</g>
-    <g class="c-head">
-      <g class="c-earL"><path d="M50 74L44 34q0-8 8-5l34 22z" fill="url(#cFur)"/><path d="M54 64l-3-24 23 15z" fill="url(#cPink)"/></g>
-      <g class="c-earR"><path d="M170 74l6-40q0-8-8-5l-34 22z" fill="url(#cFur)"/><path d="M166 64l3-24-23 15z" fill="url(#cPink)"/></g>
-      <ellipse cx="110" cy="102" rx="76" ry="62" fill="url(#cFur)"/>
-      <path d="M96 48q4 8 0 16M110 44v20M124 48q-4 8 0 16" fill="none" stroke="#6B4429" stroke-width="3.4" stroke-linecap="round" opacity=".45"/>
-      <ellipse cx="110" cy="128" rx="40" ry="26" fill="url(#cMuz)"/>
-      <ellipse cx="62" cy="124" rx="13" ry="8" fill="#FF9C8A" opacity=".5"/><ellipse cx="158" cy="124" rx="13" ry="8" fill="#FF9C8A" opacity=".5"/>
-      ${eyes}
-      <path d="M103 117h14l-7 7.5z" fill="#D9766E" stroke="#D9766E" stroke-width="2" stroke-linejoin="round"/>
-      <path d="M110 124.5v4M110 128.5q-6 7-12 1M110 128.5q6 7 12 1" fill="none" stroke="#3A2414" stroke-width="3" stroke-linecap="round"/>
-      ${cheer ? `<path d="M103 132q7 11 14 0z" fill="#E86A72"/>` : ""}
-      <g stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".85"><path d="M78 126l-26-4M78 132l-26 4M142 126l26-4M142 132l26 4"/></g>
-      <ellipse cx="78" cy="62" rx="26" ry="10" fill="#fff" opacity=".22" transform="rotate(-18 78 62)"/>
-      ${hat}</g>
-    ${sleepy ? `<g class="c-z" fill="#fff" font-family="NST,sans-serif" font-weight="800"><text x="176" y="40" font-size="18">z</text><text x="192" y="22" font-size="13">z</text></g>` : ""}
-  </svg>`;
+/* ── the mascot: MILO, a one-eyed jelly alien drawn like a 2D animation model sheet ──
+   organic inked shapes, cel shading (flat base + hard shadow + highlight), white 5-finger gloves, Jill cap. */
+const MINK = "#1D3B12", MG1 = "#9BE24A", MG2 = "#6CC02C", MG3 = "#4E9A1E", MHL = "#F2FFD2";
+const mTube = (d, w = 12) => `<path d="${d}" fill="none" stroke="${MINK}" stroke-width="${w + 5}" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="${MG2}" stroke-width="${w}" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${MG1}" stroke-width="${w * .45}" stroke-linecap="round" transform="translate(-1.5 -1)"/>`;
+function mGlove(x, y, rot, type = "open", s = 1) {
+  const W = (d) => `<path d="${d}" stroke="${MINK}" stroke-width="13" stroke-linecap="round"/><path d="${d}" stroke="#fff" stroke-width="8.5" stroke-linecap="round"/>`;
+  const F = type === "open" ? [[-13, -22], [-5, -30], [4, -31], [12, -25]] : type === "fist" || type === "thumb" ? [[-9, -9], [-3, -11], [3, -11], [9, -9]] : [[-11, -14], [-4, -17], [4, -17], [11, -14]];
+  const th = type === "thumb" ? "M-14 -2L-24 -20" : type === "open" ? "M-12 2L-27 -6" : "M-12 2L-22 -2";
+  return `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${s})">${F.map(([fx, fy]) => W(`M${fx * .55} -4L${fx} ${fy}`)).join("")}${W(th)}
+    <path d="M-15 -4C-17 -14 -8 -18 0 -17C9 -17 17 -13 15 -3C14 7 8 12 0 12C-9 12 -14 6 -15 -4Z" fill="#fff" stroke="${MINK}" stroke-width="3.2"/>
+    <path d="M-3 -12v8M3 -12v8M9 -11v7" stroke="#C9CDC2" stroke-width="1.6" stroke-linecap="round"/><path d="M10 2C12 6 8 10 2 10" fill="none" stroke="#D3D8CC" stroke-width="3" stroke-linecap="round"/>
+    <path d="M-12 10C-13 18 13 18 12 10C12 16 -12 16 -12 10Z" fill="#fff" stroke="${MINK}" stroke-width="3" stroke-linejoin="round"/></g>`;
+}
+function mFoot(x, y, flip = 1) {
+  return `<g transform="translate(${x} ${y}) scale(${flip} 1)"><path d="M-14 -2C-16 -10 -4 -12 6 -10C18 -8 26 -2 24 4C22 9 6 10 -6 9C-14 8 -13 4 -14 -2Z" fill="${MG2}" stroke="${MINK}" stroke-width="3.4" stroke-linejoin="round"/>
+    <path d="M-6 -6C2 -9 12 -7 18 -3" fill="none" stroke="${MG1}" stroke-width="3.5" stroke-linecap="round"/><path d="M-10 6C2 9 14 8 22 5" fill="none" stroke="${MG3}" stroke-width="3" stroke-linecap="round"/></g>`;
+}
+const mProps = {
+  doc: `<g transform="translate(40 168) rotate(-12)"><path d="M-16 -22h26l8 8v34h-34z" fill="#fff" stroke="${MINK}" stroke-width="3" stroke-linejoin="round"/><path d="M10 -22v8h8" fill="#E6EADF" stroke="${MINK}" stroke-width="2.4" stroke-linejoin="round"/><path d="M-10 -10h18M-10 -3h18M-10 4h12" stroke="#9AA585" stroke-width="2.6" stroke-linecap="round"/><path d="M-9 12l4 4 8-9" fill="none" stroke="#5DAA45" stroke-width="3" stroke-linecap="round"/></g>`,
+  coin: `<g transform="translate(196 172)"><circle r="17" fill="#FFC928" stroke="${MINK}" stroke-width="3"/><circle r="11.5" fill="none" stroke="#C88A00" stroke-width="2.4"/><text y="6" text-anchor="middle" font-size="16" font-weight="800" fill="#8A5A00" font-family="NST,sans-serif">฿</text><path d="M-9-9a13 13 0 0 1 8-5" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/></g>`,
+  map: `<g transform="translate(196 160) rotate(10)"><path d="M-24-18l15 5 16-5 15 5v38l-15-5-16 5-15-5z" fill="#FFF3D0" stroke="${MINK}" stroke-width="2.8" stroke-linejoin="round"/><path d="M-9-13v38M7-18v38" stroke="#E2C89A" stroke-width="2"/><path d="M-16 8q8-10 16 0t14-6" fill="none" stroke="#FF6B57" stroke-width="2.6" stroke-dasharray="4 3"/><path d="M12-4l4 4m0-4l-4 4" stroke="#FF6B57" stroke-width="2.6"/></g>`,
+  flag: `<g transform="translate(202 20)"><path d="M0 0v120" stroke="${MINK}" stroke-width="7" stroke-linecap="round"/><path d="M0 0v120" stroke="#A8743F" stroke-width="3.5" stroke-linecap="round"/><path d="M3 4h40l-10 13 10 13H3z" fill="#FF6B57" stroke="${MINK}" stroke-width="2.6" stroke-linejoin="round"/><circle cx="18" cy="17" r="4.5" fill="#FFD24A"/></g>`
+};
+const mStar = (x, y, s) => `<path transform="translate(${x} ${y}) scale(${s})" d="M0-13C2-5 5-2 13 0C5 2 2 5 0 13C-2 5-5 2-13 0C-5-2-2-5 0-13Z" fill="#FFD43B" stroke="${MINK}" stroke-width="2.4" stroke-linejoin="round"/>`;
+/* pose map: shift codes D/N/H/S and named poses */
+const MPOSE = { D: "work", N: "sleep", H: "wave", S: "idle" };
+function catSVG(mood = "H", opts = {}) { return miloSVG(MPOSE[mood] || mood, opts); }
+function miloSVG(pose = "idle", opts = {}) {
+  const B = "M118 46C92 44 68 60 58 90C48 120 46 152 54 177C61 198 80 210 108 212C136 214 162 207 174 190C186 170 184 130 174 98C164 66 145 47 118 46Z";
+  const shade = "M170 98C181 132 182 170 170 189C158 206 130 212 103 210C131 202 152 186 160 158C166 134 167 114 170 98Z";
+  const happy = pose === "cheer" || pose === "victory" || pose === "thumbs", sleep = pose === "sleep", wide = pose === "surprised";
+  const look = pose === "think" ? "translate(6px,-8px)" : "";
+  const eye = happy ? `<path d="M90 104C100 84 128 82 138 102" fill="none" stroke="${MINK}" stroke-width="7" stroke-linecap="round"/><path d="M94 92l-6-6M114 84l1-9M134 92l6-6" stroke="${MINK}" stroke-width="3" stroke-linecap="round"/>`
+    : sleep ? `<path d="M88 106C100 118 128 118 140 106" fill="none" stroke="${MINK}" stroke-width="6" stroke-linecap="round"/><path d="M94 114l-4 6M114 118v7M134 114l4 6" stroke="${MINK}" stroke-width="2.6" stroke-linecap="round"/>`
+    : `<path d="M84 104C82 84 96 72 114 72C134 72 146 86 144 104C143 122 130 134 113 134C95 134 85 122 84 104Z" fill="#fff" stroke="${MINK}" stroke-width="3.6"/>
+       <path d="M140 108C137 124 126 132 112 132C124 126 134 118 140 108Z" fill="#DCE6D6"/>
+       <g class="c-pup" style="${look ? `transform:${look}` : ""}">${wide ? `<circle cx="115" cy="104" r="9" fill="#2FB6D6" stroke="${MINK}" stroke-width="2.2"/><circle cx="115" cy="104" r="4.5" fill="${MINK}"/><circle cx="112" cy="101" r="2" fill="#fff"/>`
+         : `<path d="M100 106C99 94 106 87 116 87C127 87 132 95 131 106C130 117 123 123 115 123C106 123 101 116 100 106Z" fill="#2FB6D6" stroke="${MINK}" stroke-width="2.4"/>
+         <path d="M102 110C104 119 110 122 116 122C125 121 130 115 130 108C126 116 112 118 102 110Z" fill="#167EA6"/>
+         <ellipse cx="116" cy="105" rx="7" ry="8" fill="${MINK}"/><path d="M106 96C108 92 112 90 116 91C113 93 110 96 109 99Z" fill="#fff"/><circle cx="122" cy="113" r="2.2" fill="#fff"/>`}</g>
+       <g class="c-lid"><path d="M83 104C82 84 96 71 114 71C134 71 147 86 145 104C130 98 98 98 83 104Z" fill="${MG1}"/><path d="M84 104C98 98 130 98 144 104" fill="none" stroke="${MINK}" stroke-width="3.6" stroke-linecap="round"/></g>
+       <path d="M82 96C88 78 104 68 120 69C134 70 145 79 148 92" fill="none" stroke="${MINK}" stroke-width="5.5" stroke-linecap="round" ${pose === "think" ? 'transform="translate(0 -4) rotate(-6 114 80)"' : ""}/>`;
+  const mouth = happy || pose === "wave" ? `<path d="M90 150C98 172 128 176 140 150C126 156 104 156 90 150Z" fill="#4A1616" stroke="${MINK}" stroke-width="3.4" stroke-linejoin="round"/><path d="M102 164C110 172 124 172 130 163C122 159 110 159 102 164Z" fill="#FF8E9E"/>`
+    : wide ? `<path d="M108 152C108 144 122 144 122 152C122 162 108 162 108 152Z" fill="#4A1616" stroke="${MINK}" stroke-width="3"/>`
+    : sleep ? `<path d="M108 154C110 150 118 150 120 154C118 158 110 158 108 154Z" fill="#4A1616" stroke="${MINK}" stroke-width="2.6"/>`
+    : pose === "think" ? `<path d="M104 154C110 150 120 152 126 156" fill="none" stroke="${MINK}" stroke-width="4.5" stroke-linecap="round"/>`
+    : `<path d="M100 152C108 160 120 160 128 151" fill="none" stroke="${MINK}" stroke-width="4.5" stroke-linecap="round"/>`;
+  const capTilt = sleep ? 8 : pose === "cheer" ? -6 : -10;
+  const cap = `<g class="c-cap" transform="translate(116 52) rotate(${capTilt})">
+      <path d="M-48 10C-52 -18 -30 -36 0 -37C30 -38 52 -20 48 10C24 2 -24 2 -48 10Z" fill="#2B57E0" stroke="${MINK}" stroke-width="3.6" stroke-linejoin="round"/>
+      <path d="M20 -32C38 -26 48 -10 46 8C38 5 30 4 24 3C28 -10 26 -22 20 -32Z" fill="#1C3DAE"/><path d="M-30 -24C-20 -32 -6 -34 6 -33" fill="none" stroke="#7FA2FF" stroke-width="4" stroke-linecap="round"/>
+      <path d="M-50 8C-30 2 30 2 56 10C40 26 -30 30 -50 8Z" fill="#2047C4" stroke="${MINK}" stroke-width="3.6" stroke-linejoin="round"/><path d="M-40 16C-14 22 20 22 44 14" fill="none" stroke="#132E8A" stroke-width="3" stroke-linecap="round"/>
+      <ellipse cx="0" cy="-37" rx="6" ry="3.6" fill="#2B57E0" stroke="${MINK}" stroke-width="2.6"/>
+      <path d="M-15 -11C-15 -21 -8 -27 0 -27C9 -27 16 -21 16 -12C16 -2 9 4 0 4C-9 4 -15 -2 -15 -11Z" fill="#fff" stroke="${MINK}" stroke-width="2.6"/>
+      <text x="0.5" y="-5" text-anchor="middle" font-family="Chewy,NST,sans-serif" font-size="15.5" fill="#1E45C8" transform="rotate(-4)">Jill</text></g>`;
+  const armDown = (side) => side === "R" ? mTube("M174 128C186 140 190 156 188 172") + mGlove(186, 184, -14, "rest", .92) : mTube("M58 128C46 140 42 156 44 172") + mGlove(46, 184, 14, "rest", .92);
+  let aR, aL, legs = mTube("M98 206C98 222 96 234 94 246", 13) + mTube("M134 206C136 222 138 234 140 246", 13) + mFoot(88, 252, -1) + mFoot(146, 252, 1), fx = "", prop = "";
+  switch (pose) {
+    case "wave": aR = mTube("M172 124C188 116 196 100 198 82C199 70 197 62 196 56") + mGlove(196, 46, 8, "open"); aL = armDown("L"); break;
+    case "cheer": case "victory": aR = mTube("M170 120C184 104 192 84 196 62") + mGlove(198, 50, 14, "open"); aL = mTube("M64 120C50 104 42 84 38 62") + mGlove(36, 50, -14, "open");
+      fx = mStar(24, 96, 1) + mStar(214, 104, .8) + mStar(118, 10, .7); if (pose === "victory") { prop = mProps.flag; aR = mTube("M170 120C184 108 194 96 200 84") + mGlove(202, 78, 8, "fist"); } break;
+    case "work": aR = armDown("R"); aL = mTube("M60 128C48 138 42 150 42 162") + mGlove(40, 170, 10, "fist", .9); prop = mProps.doc; break;
+    case "coin": aL = armDown("L"); aR = mTube("M174 128C186 140 192 152 194 160") + mGlove(196, 168, -30, "fist", .9); prop = mProps.coin; break;
+    case "map": aL = armDown("L"); aR = mTube("M174 128C184 138 190 146 192 152") + mGlove(194, 158, -30, "fist", .9); prop = mProps.map; break;
+    case "think": aL = armDown("L"); aR = mTube("M172 130C176 150 160 166 140 166") + mGlove(132, 164, -70, "fist", .85); fx = `<text x="186" y="62" font-size="40" font-weight="800" fill="#4D5B86" stroke="${MINK}" stroke-width="1.5" font-family="Chewy,NST">?</text>`; break;
+    case "thumbs": aL = armDown("L"); aR = mTube("M172 126C188 118 196 104 198 90") + mGlove(198, 80, 0, "thumb"); fx = mStar(30, 70, .8); break;
+    case "surprised": aR = mTube("M170 120C186 110 196 96 200 80") + mGlove(202, 70, 10, "open"); aL = mTube("M64 120C48 110 38 96 34 80") + mGlove(32, 70, -10, "open");
+      fx = `<g fill="#FF6B57" stroke="${MINK}" stroke-width="2.4"><path d="M205 6h10l-2 30h-6z"/><circle cx="210" cy="46" r="5"/></g>`; break;
+    case "sleep": aR = armDown("R"); aL = armDown("L"); fx = `<g font-family="Chewy,NST" fill="#4D5B86" stroke="${MINK}" stroke-width="1.2"><text class="c-z" x="182" y="40" font-size="30">z</text><text class="c-z" style="animation-delay:.8s" x="204" y="18" font-size="20">z</text></g>`; break;
+    case "walk": aR = mTube("M174 128C188 136 196 146 200 156") + mGlove(204, 166, -40, "rest", .9); aL = mTube("M58 128C48 120 40 110 36 100") + mGlove(34, 90, 160, "rest", .9);
+      legs = mTube("M98 206C94 222 86 232 78 240", 13) + mTube("M134 206C140 220 148 230 158 236", 13) + mFoot(72, 246, -1) + mFoot(164, 242, 1); break;
+    default: aR = armDown("R"); aL = armDown("L");
+  }
+  return `<svg class="cat milo-ch p-${pose} ${opts.cls || ""}" viewBox="0 0 240 280" aria-hidden="true">
+    <ellipse class="c-shadow" cx="118" cy="258" rx="70" ry="9" fill="rgba(80,120,30,.22)"/>${fx}
+    <g class="c-all" ${pose === "sleep" ? 'transform="rotate(4 118 250)"' : ""}>
+      <g class="c-legs">${legs}</g>
+      <g class="c-armL">${aL}</g>
+      <g class="c-body">
+        <path d="${B}" fill="${MG1}"/><path d="${shade}" fill="${MG2}"/>
+        <path d="M62 178C80 198 140 202 166 184C150 200 120 206 98 205C80 204 68 194 62 178Z" fill="${MG3}" opacity=".55"/>
+        <path d="M70 186C92 196 136 198 158 188" fill="none" stroke="${MHL}" stroke-width="3" stroke-linecap="round" opacity=".9"/>
+        <g fill="none" stroke="${MINK}" stroke-width="1.8" opacity=".55"><path d="M72 162c-4 0-7 3-7 7s3 7 7 7 7-3 7-7"/><path d="M152 170c-3 0-5 2-5 5"/></g>
+        <path d="M72 84C80 64 96 54 114 53C100 60 88 70 82 88C79 92 72 90 72 84Z" fill="#fff" opacity=".9"/><path d="M66 104c-2 4-2 8 0 11" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".9"/>
+        <path d="${B}" fill="none" stroke="${MINK}" stroke-width="4"/>
+        <path d="M176 120C182 150 180 178 168 194C156 208 128 214 100 212" fill="none" stroke="${MINK}" stroke-width="7.5" stroke-linecap="round"/>
+        ${eye}
+        <path d="M68 136c6-3 14-3 20 0" stroke="#FF88A6" stroke-width="5" stroke-linecap="round" opacity=".8"/><path d="M142 136c6-3 14-3 20 0" stroke="#FF88A6" stroke-width="5" stroke-linecap="round" opacity=".8"/>
+        ${mouth}${cap}
+      </g>
+      <g class="c-armR">${aR}</g>${prop}
+    </g></svg>`;
 }
 /* eyes follow the finger / pointer a little */
 document.addEventListener("pointermove", e => {
@@ -146,9 +201,9 @@ document.addEventListener("pointermove", e => {
   });
 }, { passive: true });
 const CAT_LINES = {
-  D: ["สู้ ๆ นะ กะเช้า!", "อย่าลืมพักดื่มน้ำ", "ใส่หมวกเซฟตี้แล้ว!"],
-  N: ["กะดึกคืนนี้ ฝันดีตอนกลางวันนะ", "ง่วงก็ต้องสู้…", "เอากาแฟมาเพิ่มอีกแก้ว"],
-  H: ["วันหยุด! ไปเที่ยวกัน", "นอนกลิ้งทั้งวันเลย", "วันนี้ไม่ใช้เงินเกินนะ"],
+  D: ["สู้ ๆ นะ กะเช้า!", "ใบ OT เดี๋ยว MILO ช่วยสแกน", "อย่าลืมพักดื่มน้ำนะ"],
+  N: ["กะดึกคืนนี้ งีบก่อนไปนะ", "ง่วงก็ต้องสู้…", "กลับมานอนให้เต็มอิ่มนะ"],
+  H: ["วันหยุด! ไปเที่ยวกัน", "วันนี้ไม่ใช้เงินเกินนะ", "เช็กหนี้ที่ต้องจ่ายกันหน่อยไหม"],
   S: ["โรงงานปิด พักยาว ๆ", "เที่ยวไหนดีน้า"]
 };
 

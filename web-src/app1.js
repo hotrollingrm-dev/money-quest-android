@@ -135,7 +135,7 @@ function confetti() {
 function xpPop(xp) { const e = document.createElement("div"); e.className = "xpfloat"; e.textContent = `+${xp} XP`; document.body.appendChild(e); setTimeout(() => e.remove(), 1500); }
 
 /* ───────── illustrations (flat, hand-placed shapes) ───────── */
-const pine = (x, y, s = 1, c = "#3F5E1C") => `<g transform="translate(${x} ${y}) scale(${s})"><path d="M0 -46 L13 -22 L7 -22 L17 -4 L9 -4 L20 14 L-20 14 L-9 -4 L-17 -4 L-7 -22 L-13 -22Z" fill="${c}"/><rect x="-2.5" y="14" width="5" height="7" fill="#5A3A22"/></g>`;
+const pine = (x, y, s = 1, c = "#3F5E1C") => `<g transform="translate(${x} ${y}) scale(${s})"><g class="sway" style="animation-delay:${(x % 7) * -.3}s"><path d="M0 -46 L13 -22 L7 -22 L17 -4 L9 -4 L20 14 L-20 14 L-9 -4 L-17 -4 L-7 -22 L-13 -22Z" fill="${c}"/><rect x="-2.5" y="14" width="5" height="7" fill="#5A3A22"/></g></g>`;
 function sceneArt(c) {
   if (c === "N") return `<svg class="art" viewBox="0 0 360 170" aria-hidden="true">
     <circle cx="276" cy="52" r="26" fill="#FFE6B0"/><circle cx="288" cy="44" r="24" fill="#3A2B28"/>
@@ -217,8 +217,17 @@ function heroHTML(d) {
 function sceneHTML(d) {
   const td = today(), sh = shiftOf(d); let c = sh.c;
   if (d === td) { const yc = shiftOf(E.addDays(td, -1)).c; if (isWork(yc) && crosses(yc) && new Date() < atTime(td, times(yc)[1])) c = yc; }
-  const lines = CAT_LINES[c] || CAT_LINES.H, line = lines[(E.parse(d).getDate() + (view.catTap || 0)) % lines.length];
-  return `${catScene(c)}<button class="catbtn" data-act="catTap" aria-label="แตะน้องแมว">${catSVG(c)}</button><div class="bubble"><b>${esc(line)}</b></div>`;
+  const lines = CAT_LINES[c] || CAT_LINES.H; let line = lines[(E.parse(d).getDate() + (view.catTap || 0)) % lines.length], pose = MPOSE[c] || "idle";
+  if (d === td && !view.catTap) { // react to real data, today only
+    const mk = E.monthKey(td), av = E.available(S, mk, td), ds = E.debtSchedule(S, mk, td);
+    const over = ds.find(r => r.status === "overdue"), soon = ds.find(r => r.status === "planned" && E.diffDays(td, r.due) >= 0 && E.diffDays(td, r.due) <= 1);
+    const ap = S.planner.appts.find(a => E.apptOccurrences(a, td, td).length);
+    if (S.pay.salary && av.safe < 0) { pose = "surprised"; line = "ใช้เงินเกินงบแล้วนะ!"; }
+    else if (over) { pose = "think"; line = `${over.debt.name} เลยกำหนดจ่ายแล้ว`; }
+    else if (soon) { pose = "think"; line = `${soon.due === td ? "วันนี้" : "พรุ่งนี้"}ครบจ่าย ${soon.debt.name}`; }
+    else if (ap) { pose = "wave"; line = `วันนี้มีนัด: ${ap.title}`; }
+  }
+  return `${catScene(c)}<button class="catbtn" data-act="catTap" aria-label="แตะ MILO">${miloSVG(pose)}</button><div class="bubble"><b>${esc(line)}</b></div>`;
 }
 const dial = { pos: null, raf: 0, v: 0, drag: null, lastInt: null };
 function dialHTML() {
@@ -382,9 +391,9 @@ function pHome() {
   <div class="stack">
     ${rem.length ? `<div class="card"><div class="between" style="margin-bottom:6px"><b class="row" style="gap:8px">${art("bell", 30)} เตือนเร็ว ๆ นี้</b><span class="tag y">${rem.length}</span></div>${rem.slice(0, 4).map(r => `<div class="li"><span class="dot" style="background:${r.overdue ? "var(--bad)" : r.kind === "appt" ? "var(--lav-ink)" : "var(--sun-deep)"}"></span><div class="t"><b>${esc(r.title)}</b><small>${esc(r.sub)}</small></div></div>`).join("")}</div>` : ""}
     <div class="sec-h" style="margin-top:4px"><h2>กำลังจะถึง</h2><button data-act="goPlanner" data-sub="calendar">ดูทั้งหมด</button></div>
-    ${qc ? `<div class="qcards">${qc}</div>` : `<div class="card empty">${catSVG("H", { cls: "mini" })}<b>ยังไม่มีนัดหมายหรือบิลใน 30 วัน</b>กดปุ่ม เพิ่มนัด ด้านบนได้เลย</div>`}
+    ${qc ? `<div class="qcards">${qc}</div>` : `<div class="card empty">${miloSVG("idle", { cls: "mini" })}<b>ยังไม่มีนัดหมายหรือบิลใน 30 วัน</b>กดปุ่ม เพิ่มนัด ด้านบนได้เลย</div>`}
     <button class="card jmini" data-act="go" data-tab="journey">${miniMountain(jp.overall)}
-      <div class="t"><div class="sub">การผจญภัยของน้องแมว · Lv.${lv.lv}</div><div class="pct">${Math.round(jp.overall * 100)}%</div>
+      <div class="t"><div class="sub">การผจญภัยของ MILO · Lv.${lv.lv}</div><div class="pct">${Math.round(jp.overall * 100)}%</div>
       <div class="sub" style="margin-top:4px">${next ? `ถัดไป: <b style="color:var(--ink)">${next.name}</b> — ${next.sub}` : "ถึงยอดเขาแล้ว!"}</div></div></button>
   </div></div>`;
 }
@@ -405,6 +414,8 @@ function worldSVG(jp) {
     <rect width="400" height="500" fill="#CFE6F3"/><rect y="170" width="400" height="330" fill="#DCEEF7"/>
     <circle cx="332" cy="74" r="28" fill="#FFD45C"/><circle cx="332" cy="74" r="40" fill="#FFD45C" opacity=".22"/>
     <g class="cloud"><path d="M40 70 h46 a12 12 0 0 0 0-24 a17 17 0 0 0-32-4 a12 12 0 0 0-14 28z" fill="#fff"/></g>
+    <g class="birds"><path d="M0 0q5-5 10 0q5-5 10 0" fill="none" stroke="#4D5B86" stroke-width="2" stroke-linecap="round"/><path d="M26 10q4-4 8 0q4-4 8 0" fill="none" stroke="#4D5B86" stroke-width="1.6" stroke-linecap="round"/></g>
+    <g class="leaves"><path d="M0 0q6-6 12 0q-6 6-12 0z" fill="#9DBA5C"/><path d="M40 30q5-5 10 0q-5 5-10 0z" fill="#86A445"/><path d="M80 10q5-5 10 0q-5 5-10 0z" fill="#B7D46E"/></g>
     <g class="cloud c2"><path d="M10 130 h36 a10 10 0 0 0 0-20 a14 14 0 0 0-26-3 a10 10 0 0 0-10 23z" fill="#fff" opacity=".85"/></g>
     <path d="M0 270 L60 196 L104 236 L160 160 L200 196 L250 150 L304 214 L352 176 L400 210 V500 H0Z" fill="#C9C1EE"/>
     <path d="M24 500 L200 66 L376 500Z" fill="#9DBA5C"/><path d="M200 66 L376 500 L270 500 L236 300Z" fill="#86A445"/>
@@ -420,7 +431,7 @@ function worldSVG(jp) {
            <g class="flag"><rect x="12" y="-36" width="2" height="16" fill="#1D1A16"/><path d="M14 -36 L26 -32 L14 -28Z" fill="${reached[cp.id] ? "#FFBE2E" : "#fff"}" stroke="#1D1A16" stroke-width="1"/></g>`}
       <rect x="-30" y="6" width="60" height="18" rx="9" fill="${reached[cp.id] ? "#1D1A16" : "rgba(255,255,255,.9)"}"/>
       <text y="19" text-anchor="middle" font-size="10" font-weight="700" fill="${reached[cp.id] ? "#fff" : "#1D1A16"}" font-family="Plus Jakarta Sans,sans-serif">${i === 0 ? "BASE" : i === 5 ? "SUMMIT" : "CP " + i}</text></g>`).join("")}
-    <g id="hiker"><g class="bob">${catSVG("H").replace("<svg ", '<svg x="-26" y="-50" width="52" height="52" ')}    </g></g>
+    <g id="hiker"><g class="bob">${miloSVG("walk").replace("<svg ", '<svg x="-26" y="-58" width="52" height="60" ')}    </g></g>
   </svg>`;
 }
 function layoutWorld(frac) {

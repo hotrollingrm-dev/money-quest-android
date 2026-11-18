@@ -111,7 +111,8 @@ async function scanFile(file) {
     const url = URL.createObjectURL(blob); otDraft().img = url;
     msg.textContent = "กำลังอ่านแถวรวม… (ใช้เวลา 10–40 วินาที)";
     const prompt = `This image is a Thai factory "รายงานแสดงสรุปการทำงานประจำวัน" (UACJ daily work summary / OT slip). Read ONLY the TOTAL row at the bottom of the table (แถวรวม). It has 9 cells in this order: OT hours at rate 1, 1.5, 3, 1.5 Public, 2 Public, Other (all as hours:minutes), then meal allowance ค่าอาหาร, meal OT ค่าอาหาร OT, shift allowance ค่ากะ (all in baht). Ignore handwriting in red pen. Reply with ONLY JSON: {"h1":"hh:mm"|null,"h15":"hh:mm"|null,"h3":"hh:mm"|null,"h15p":"hh:mm"|null,"h2p":"hh:mm"|null,"other":"hh:mm"|null,"meal":number|null,"mealOt":number|null,"shift":number|null,"unsure":["field keys you are not sure about"]}. Use null for an empty or unreadable cell. Never guess.`;
-    const r = await sample.json(prompt, { images: [blob] });
+    scanFx(url);
+    let r; try { r = await sample.json(prompt, { images: [blob] }); } catch (x) { scanFx(null, -1); throw x; }
     const d = otDraft(); let n = 0, bad = [];
     for (const f of E.OT_FIELDS) {
       const v = r[f.k]; if (v == null || v === "") continue;
@@ -119,6 +120,7 @@ async function scanFile(file) {
       else { const amt = Math.round(+String(v).replace(/,/g, "")); if (!isFinite(amt)) { bad.push(f.label); continue; } d.values[f.k] = { v: amt }; const unit = f.k === "meal" ? S.pay.mealRate : f.k === "mealOt" ? S.pay.mealOtRate : S.pay.shiftRate; if (amt % unit) bad.push(f.label + " (หารไม่ลงตัว)"); }
       d.source[f.k] = "scan"; d.dirty = true; n++;
     }
+    scanFx(null, n);
     const unsure = (r.unsure || []).map(k => (E.OT_FIELDS.find(f => f.k === k) || {}).label).filter(Boolean);
     render();
     $("#scanMsg").textContent = `อ่านได้ ${n}/9 ช่อง${bad.length ? ` · ตรวจ: ${bad.join(", ")}` : ""}${unsure.length ? ` · ไม่แน่ใจ: ${unsure.join(", ")}` : ""} — ตรวจทุกช่องก่อนกดบันทึก`;

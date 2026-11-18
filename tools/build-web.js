@@ -7,7 +7,7 @@ const read = f => fs.readFileSync(path.join(W, f), "utf8");
 let html = read("shell.html")
   .replace("/*CSS*/", () => read("app.css")).replace("/*ROSTER*/", () => read("roster.js"))
   .replace("/*ENGINE*/", () => read("engine.js") + "\n" + read("debt.js")).replace("/*SLIP*/", () => read("slip.js"))
-  .replace("/*APP*/", () => ["art.js", "app1.js", "app2.js", "app3.js", "debtui.js", "app4.js"].map(read).join("\n"))
+  .replace("/*APP*/", () => ["art.js", "app1.js", "app2.js", "app3.js", "debtui.js", "motion.js", "app4.js"].map(read).join("\n"))
   .replace("__MQ_WEB_VERSION__", ver);
 fs.rmSync(OUT, { recursive: true, force: true });
 for (const d of ["vendor/core", "vendor/lang", "vendor/fonts"]) fs.mkdirSync(path.join(OUT, d), { recursive: true });
@@ -20,6 +20,7 @@ cp("@tesseract.js-data/tha/4.0.0_best_int/tha.traineddata.gz", "vendor/lang/tha.
 cp("@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz", "vendor/lang/eng.traineddata.wasm");
 cp("jsqr/dist/jsQR.js", "vendor/jsQR.js");
 for (const s of ["thai", "latin"]) for (const w of [400, 600, 700, 800]) cp(`@fontsource/noto-sans-thai/files/noto-sans-thai-${s}-${w}-normal.woff2`, `vendor/fonts/nst-${s}-${w}.woff2`);
+cp("@fontsource/chewy/files/chewy-latin-400-normal.woff2", "vendor/fonts/chewy.woff2");
 cp("@capacitor/core/dist/capacitor.js", "vendor/capacitor.js");
 const shim = '/* language files are served as .wasm */(function(){var f=self.fetch;self.fetch=function(u,o){return f(String(u).replace(/\\.traineddata\\.gz$/,".traineddata.wasm"),o)}})();\n';
 fs.writeFileSync(path.join(OUT, "vendor/worker.min.js"), shim + fs.readFileSync(path.join(NM, "tesseract.js/dist/worker.min.js"), "utf8"));
