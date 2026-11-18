@@ -1,0 +1,22 @@
+{
+  "name": "UAดิวะ!",
+  "short_name": "UAดิวะ!",
+  "description": "ตารางกะ UACJ · เงินเดือน OT · หนี้ · เป้าหมาย พร้อม MILO",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EEF6CF",
+  "theme_color": "#8ED3FF",
+  "lang": "th",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "สแกนใบ OT", "url": "/?go=scan", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "จดรายจ่าย", "url": "/?go=spend", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

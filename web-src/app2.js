@@ -337,7 +337,7 @@ function plTodo() {
 function pProfile() {
   const w = S.journey.weights;
   return `${sampleBanner()}<div class="top"><button class="avatar" style="width:64px;height:64px;font-size:26px">${esc((S.profile.name || "M").slice(0, 1).toUpperCase())}</button><div class="who"><h1 class="hi">${esc(S.profile.name || "ตั้งชื่อของคุณ")}</h1><div class="sub" data-sync>${syncHTML()}</div></div></div>
-  <div class="mgrid"><div class="stack">
+  <div class="mgrid"><div class="stack">${typeof installCard === "function" ? installCard(false) : ""}
     <div class="card"><b>ข้อมูลส่วนตัว</b><div class="fgrid" style="margin-top:12px"><div class="f full"><label>ชื่อ</label><input type="text" maxlength="30" data-bind="profile.name" value="${esc(S.profile.name)}" placeholder="ชื่อเล่น"></div>
       <div class="f"><label>ทีม (ตารางกะ)</label><select data-bind="profile.team">${"ABC".split("").map(t => `<option ${S.profile.team === t ? "selected" : ""}>${t}</option>`).join("")}</select></div>
       <div class="f"><label>วันเงินเดือนออก</label><input type="number" min="1" max="31" data-bind="profile.payday" value="${S.profile.payday}"></div></div></div>

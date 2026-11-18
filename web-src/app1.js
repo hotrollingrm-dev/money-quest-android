@@ -419,6 +419,7 @@ function pHome() {
       <span class="row" style="gap:10px"><button class="b3 sq" data-act="goPlanner" data-sub="appts" aria-label="การเตือน">${art("bell", 30, "flat")}${rem.length ? `<i class="badge-n">${rem.length}</i>` : ""}</button>
       <button class="b3 sq" data-act="go" data-tab="profile" aria-label="โปรไฟล์">${art("user", 30, "flat")}</button></span></div></section>
   <button class="card mstrip" data-act="go" data-tab="journey">${art("paw", 46)}<span style="flex:1"><small><b>${done} / ${ms.length || 0}</b> ภารกิจเดือนนี้ · Lv.${lv.lv}</small><span class="pbar"><i style="width:${pct * 100}%"></i></span></span><b class="pp">${Math.round(pct * 100)}%</b></button>
+  ${typeof installCard === "function" ? installCard(true) : ""}
   <div class="between dayrow"><h2 id="dayHead">${dsel === td ? `วันนี้ · ${dShort(dsel)}` : dLong(dsel).replace(/ \d{4}$/, "")}</h2><span class="muted" style="font-size:12px;font-weight:700">ลากหมุน · แตะ 2 ครั้งดูทั้งเดือน</span></div>
   <div id="dialWrap">${view.homeMonth ? monthHTML() : dialHTML()}</div>
   <div class="home-grid"><div class="stack"><div id="heroBox">${heroHTML(dsel)}</div>${quick}${cash}</div>
