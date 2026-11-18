@@ -114,6 +114,31 @@ function bankSummary(mk) {
   }
   return Object.values(rows).filter(r => r.n || r.inn || r.xin);
 }
+const INC_CAT = s => { const n = ((s.from && s.from.name) || "") + " " + ((s.memo) || ""); return /uacj|เงินเดือน|salary|payroll/i.test(n) ? "เงินเดือน/OT" : /ดอกเบี้ย|interest/i.test(n) ? "ดอกเบี้ย" : /คืน|refund/i.test(n) ? "เงินคืน" : "โอนเข้า"; };
+const slipCat = s => s.type === "income" ? INC_CAT(s) : s.type === "debt" ? "ชำระหนี้/บัตร" : s.type === "expense" ? (E.EXP_CATS[s.cat] || "อื่น ๆ") : s.type === "transfer" ? "โอนข้ามบัญชีตัวเอง" : "ยังไม่แยก";
+const slipDir = s => s.type === "income" ? "in" : s.type === "expense" || s.type === "debt" ? "out" : "x";
+function flowSummary(mk) {
+  const r = { inn: 0, out: 0, x: 0, nIn: 0, nOut: 0, pend: 0, cats: {} };
+  for (const s of Object.values(S.slips)) {
+    if (s.status === "ignored" || !s.date || E.monthKey(s.date) !== mk) continue;
+    const d = slipDir(s), a = +s.amount || 0; if (s.status === "pending") r.pend++;
+    if (d === "in") { r.inn += a; r.nIn++; } else if (d === "out") { r.out += a; r.nOut++; const c = slipCat(s); r.cats[c] = (r.cats[c] || 0) + a; } else r.x += a;
+  }
+  return r;
+}
+function flowCard(mk) {
+  const f = flowSummary(mk), net = f.inn - f.out, tot = f.inn + f.out || 1;
+  if (!f.nIn && !f.nOut) return `<div class="card empty"><b>ยังไม่มีสลิปเดือนนี้</b>นำเข้าสลิปแล้วจะสรุปรับเข้า–จ่ายออกให้ตรงนี้</div>`;
+  const cats = Object.entries(f.cats).sort((a, b) => b[1] - a[1]).slice(0, 4);
+  const verdict = net > 0 ? `รับเข้ามากกว่า <b>${baht(net)}</b>` : net < 0 ? `จ่ายออกมากกว่า <b>${baht(-net)}</b>` : "รับเข้าเท่ากับจ่ายออกพอดี";
+  return `<div class="card flowc ${net < 0 ? "neg" : "pos"}">
+    <div class="between"><span class="sub">สรุปจากสลิป · ${mShort(mk)}</span>${f.pend ? `<span class="tag y">รวมที่รอตรวจ ${f.pend}</span>` : ""}</div>
+    <div class="flow-v">${verdict}</div>
+    <div class="flow-bar"><i class="in" style="width:${f.inn / tot * 100}%"></i><i class="out" style="width:${f.out / tot * 100}%"></i></div>
+    <div class="flow-kv"><div><small><span class="fd in"></span>รับเข้า ${f.nIn} รายการ</small><b class="money">${baht(f.inn)}</b></div><div><small><span class="fd out"></span>จ่ายออก ${f.nOut} รายการ</small><b class="money">${baht(f.out)}</b></div></div>
+    ${cats.length ? `<div class="flow-cats">${cats.map(([c, v]) => `<div class="fc"><span>${esc(c)}</span><i><b style="width:${v / f.out * 100}%"></b></i><em>${baht(v)}</em></div>`).join("")}</div>` : ""}
+    ${f.x ? `<p class="sub" style="margin-top:8px;font-size:12px">ไม่นับโอนข้ามบัญชีตัวเอง ${baht(f.x)}</p>` : ""}</div>`;
+}
 function mSlips() {
   slipState();
   const all = Object.values(S.slips), pend = all.filter(s => s.status === "pending").sort((a, b) => ((b.date || "") + (b.time || "")).localeCompare((a.date || "") + (a.time || "")));
@@ -124,9 +149,9 @@ function mSlips() {
     const toOwn = s.toOwnId && S.owner.accounts.find(a => a.id === s.toOwnId);
     const sub = s.type === "transfer" ? `→ ${toOwn ? acctLabel(toOwn) : "บัญชีของคุณ"}` : s.type === "debt" ? `→ ${esc(s.to && s.to.name || "บัตรเครดิต")} ${s.to && s.to.card ? "(" + esc(s.to.card) + ")" : ""}${s.debtId ? "" : " · ยังไม่ได้ผูกกับหนี้"}` : `→ ${esc((s.to && s.to.name) || (s.to && s.to.acct) || "ไม่ทราบผู้รับ")}`;
     return `<div class="card slipc" style="padding:16px">
-      <div class="between"><span class="row" style="gap:8px"><span class="dot" style="width:12px;height:12px;background:${b.color}"></span><b>${b.short}</b><span class="muted" style="font-size:13px">${s.date ? dShort(s.date) : "?"} ${s.time || ""}</span></span><span class="tag ${tc}">${tl}</span></div>
+      <div class="between"><span class="row" style="gap:8px"><span class="dot" style="width:12px;height:12px;background:${b.color}"></span><b>${b.short}</b><span class="muted" style="font-size:13px">${s.date ? dShort(s.date) : "?"} ${s.time || ""}</span></span><span class="dirpill ${slipDir(s)}">${slipDir(s) === "in" ? "↓ รายรับ" : slipDir(s) === "out" ? "↑ รายจ่าย" : tl}</span></div>
       <div class="between" style="margin-top:8px;align-items:flex-end"><div style="min-width:0"><div class="money" style="font-size:26px">${sign(s)}${baht(s.amount || 0, (s.amount || 0) % 1 ? 2 : 0)}</div><div class="sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sub}</div></div></div>
-      ${s.type === "expense" ? `<div class="row" style="margin-top:8px;gap:6px"><span class="tag">${E.EXP_CATS[s.cat] || "อื่น ๆ"}${s.catConf === "learned" ? " · จำไว้" : ""}</span>${s.billId ? `<span class="tag g">จ่าย${esc((S.expenses.find(e => e.id === s.billId) || {}).name || "")}</span>` : ""}</div>` : ""}
+      ${s.type !== "transfer" ? `<div class="row" style="margin-top:8px;gap:6px"><span class="tag ${slipDir(s) === "in" ? "g" : ""}">${esc(slipCat(s))}${s.catConf === "learned" ? " · จำไว้" : ""}</span>${s.billId ? `<span class="tag g">จ่าย${esc((S.expenses.find(e => e.id === s.billId) || {}).name || "")}</span>` : ""}</div>` : ""}
       ${s.type === "transfer" && toOwn && toOwn.goalId ? `<div class="row" style="margin-top:8px"><span class="tag g">เข้าเป้าหมาย ${esc((S.goals.find(g => g.id === toOwn.goalId) || {}).name || "")}</span></div>` : ""}
       ${fl.length ? `<div class="warnbox" style="margin-top:10px;padding:8px 12px;font-size:13px">ตรวจ: ${fl.join(" · ")}</div>` : ""}
       <div class="row" style="margin-top:12px;gap:8px;flex-wrap:nowrap"><button class="btn sm ghost" style="flex:1" data-act="slipEdit" data-id="${esc(s.id)}">แก้</button><button class="btn sm ghost" data-act="slipIgnore" data-id="${esc(s.id)}">ข้าม</button><button class="btn sm primary" style="flex:1.4" data-act="slipOk" data-id="${esc(s.id)}">ยืนยัน</button></div></div>`; };
@@ -137,12 +162,14 @@ function mSlips() {
       ${view3.slipMsg ? `<p class="sub" style="margin-top:8px">${esc(view3.slipMsg)}</p>` : ""}
       <p class="hint" style="margin-top:8px;font-size:12px;color:var(--ink-3)">ทดสอบแล้วกับสลิป ออมสิน (MyMo) · ทีทีบี · กรุงศรี — ธนาคารอื่นอ่านได้แต่อาจต้องตรวจมากขึ้น</p></div>
     ${pend.length ? `<div class="sec-h"><h2>รอตรวจ ${pend.length}</h2>${clean.length > 1 ? `<button data-act="slipOkAll">ยืนยัน ${clean.length} รายการที่ไม่มีจุดตรวจ</button>` : ""}</div><div class="stack">${pend.map(card).join("")}</div>` : ""}
-    <div class="sec-h"><h2>แยกตามบัญชี</h2><div class="row" style="gap:4px"><button class="icon-btn" data-act="slipM" data-n="-1" aria-label="เดือนก่อน">${I.l}</button><b style="font-size:14px">${mShort(view3.slipMonth)}</b><button class="icon-btn" data-act="slipM" data-n="1" aria-label="เดือนถัดไป">${I.r}</button></div></div>
+    <div class="sec-h"><h2>รับเข้า vs จ่ายออก</h2><div class="row" style="gap:4px"><button class="icon-btn" data-act="slipM" data-n="-1" aria-label="เดือนก่อน">${I.l}</button><b style="font-size:14px">${mShort(view3.slipMonth)}</b><button class="icon-btn" data-act="slipM" data-n="1" aria-label="เดือนถัดไป">${I.r}</button></div></div>
+    ${flowCard(view3.slipMonth)}
+    <div class="sec-h"><h2>แยกตามบัญชี</h2></div>
     ${S.owner.accounts.length ? `<div class="stack">${(sum.length ? sum : S.owner.accounts.map(a => ({ acc: a, out: 0, inn: 0, xin: 0, xout: 0, n: 0 }))).map(r => { const b = BANKC(r.acc.bank); return `<button class="card" style="text-align:left;width:100%;border-left:6px solid ${b.color}" data-act="acctEdit" data-id="${r.acc.id}">
         <div class="between"><b>${b.name} <span class="muted" style="font-weight:500">${esc(r.acc.masks[0] || "")}</span></b>${r.acc.goalId ? `<span class="tag g">บัญชีเงินเก็บ</span>` : ""}</div>${r.acc.label ? `<div class="sub">${esc(r.acc.label)}</div>` : ""}
         <div class="kv" style="margin-top:10px"><div><small>จ่ายออก</small><b>${baht(r.out)}</b></div><div><small>รับเข้า</small><b>${baht(r.inn)}</b></div><div><small>โอนข้ามบัญชี</small><b>${baht(r.xout)} / ${baht(r.xin)}</b></div></div></button>`; }).join("")}</div>`
       : `<div class="card empty"><b>ยังไม่รู้จักบัญชีของคุณ</b>นำเข้าสลิปแล้วระบบจะจำบัญชีผู้โอนว่าเป็นบัญชีของคุณ</div>`}
-    ${done.length ? `<div class="sec-h"><h2>บันทึกแล้ว · ${mShort(view3.slipMonth)}</h2></div><div class="card"><div class="list">${done.map(s => { const b = BANKC(s.bank && s.bank.k), [tl] = SL_TYPE[s.type] || SL_TYPE.unknown; return `<div class="li"><span class="dot" style="width:10px;height:10px;background:${b.color}"></span><div class="t"><b>${esc((s.to && s.to.name) || tl)}</b><small>${b.short} · ${dShort(s.date)} ${s.time || ""} · ${tl}</small></div><div class="v">${sign(s)}${baht(s.amount, s.amount % 1 ? 2 : 0)}</div><button class="link" data-act="slipUndo" data-id="${esc(s.id)}">ย้อน</button></div>`; }).join("")}</div></div>` : ""}`;
+    ${done.length ? `<div class="sec-h"><h2>บันทึกแล้ว · ${mShort(view3.slipMonth)}</h2></div><div class="card"><div class="list">${done.map(s => { const b = BANKC(s.bank && s.bank.k), [tl] = SL_TYPE[s.type] || SL_TYPE.unknown; return `<div class="li"><span class="dot" style="width:10px;height:10px;background:${b.color}"></span><div class="t"><b>${esc((s.to && s.to.name) || tl)}</b><small>${b.short} · ${dShort(s.date)} ${s.time || ""} · ${esc(slipCat(s))}</small></div><div class="v dv ${slipDir(s)}">${sign(s)}${baht(s.amount, s.amount % 1 ? 2 : 0)}</div><button class="link" data-act="slipUndo" data-id="${esc(s.id)}">ย้อน</button></div>`; }).join("")}</div></div>` : ""}`;
 }
 function sheetSlip(id) {
   const s = S.slips[id]; if (!s) return;
